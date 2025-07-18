@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,25 +12,65 @@ import {
   AlertTriangle,
   Calendar,
   BarChart3,
-  Users
+  Users,
+  ShoppingCart,
+  Plus
 } from "lucide-react";
+import { db } from "@/lib/database";
+import { 
+  ResponsiveContainer, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip 
+} from 'recharts';
 
-// Mock data - in real app this would come from database
-const dashboardData = {
-  todaySales: {
-    totalAmount: 1250000,
-    totalCost: 850000,
-    totalProfit: 400000,
-    voucherCount: 45
-  },
-  products: {
-    total: 120,
-    lowStock: 8,
-    outOfStock: 3
+// Chart data for sales trend
+const generateChartData = () => {
+  const data = [];
+  const today = new Date();
+  
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    // Simulate sales data
+    const sales = Math.floor(Math.random() * 500000) + 200000;
+    data.push({
+      name: dayName,
+      sales: sales,
+      profit: Math.floor(sales * 0.3),
+    });
   }
+  
+  return data;
 };
 
 export function Dashboard() {
+  const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState({
+    todaySales: { totalSale: 0, totalCost: 0, totalProfit: 0, voucherCount: 0 },
+    inventory: { total: 0, lowStock: 0, outOfStock: 0 }
+  });
+  const [chartData] = useState(generateChartData());
+
+  useEffect(() => {
+    // Initialize database with sample data
+    db.initializeDatabase();
+    
+    // Load real data
+    const todaySales = db.getTodaysSales();
+    const inventory = db.getInventoryStats();
+    
+    setDashboardData({
+      todaySales,
+      inventory
+    });
+  }, []);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('my-MM', {
       style: 'currency',
@@ -52,9 +94,13 @@ export function Dashboard() {
             <Calendar className="mr-2 h-4 w-4" />
             Today
           </Button>
-          <Button variant="outline" size="sm">
-            <BarChart3 className="mr-2 h-4 w-4" />
-            Reports
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate('/sales')}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            New Sale
           </Button>
         </div>
       </div>
@@ -68,10 +114,10 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              {formatCurrency(dashboardData.todaySales.totalAmount)}
+              {formatCurrency(dashboardData.todaySales.totalSale)}
             </div>
             <p className="text-xs text-muted-foreground">
-              +12% from yesterday
+              {dashboardData.todaySales.voucherCount} transactions today
             </p>
           </CardContent>
         </Card>
@@ -101,7 +147,7 @@ export function Dashboard() {
               {formatCurrency(dashboardData.todaySales.totalProfit)}
             </div>
             <p className="text-xs text-muted-foreground">
-              +8% from yesterday
+              Net profit today
             </p>
           </CardContent>
         </Card>
@@ -134,18 +180,18 @@ export function Dashboard() {
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Total Products</span>
-              <Badge variant="secondary">{dashboardData.products.total}</Badge>
+              <Badge variant="secondary">{dashboardData.inventory.total}</Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Low Stock</span>
               <Badge variant="outline" className="text-warning border-warning">
-                {dashboardData.products.lowStock}
+                {dashboardData.inventory.lowStock}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Out of Stock</span>
               <Badge variant="destructive">
-                {dashboardData.products.outOfStock}
+                {dashboardData.inventory.outOfStock}
               </Badge>
             </div>
           </CardContent>
@@ -159,18 +205,30 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="p-3 bg-warning-light rounded-lg">
-              <p className="text-sm font-medium">Low Stock Alert</p>
-              <p className="text-xs text-muted-foreground">
-                8 products need restocking
-              </p>
-            </div>
-            <div className="p-3 bg-destructive/10 rounded-lg">
-              <p className="text-sm font-medium">Out of Stock</p>
-              <p className="text-xs text-muted-foreground">
-                3 products are completely out
-              </p>
-            </div>
+            {dashboardData.inventory.lowStock > 0 && (
+              <div className="p-3 bg-warning-light rounded-lg">
+                <p className="text-sm font-medium">Low Stock Alert</p>
+                <p className="text-xs text-muted-foreground">
+                  {dashboardData.inventory.lowStock} products need restocking
+                </p>
+              </div>
+            )}
+            {dashboardData.inventory.outOfStock > 0 && (
+              <div className="p-3 bg-destructive/10 rounded-lg">
+                <p className="text-sm font-medium">Out of Stock</p>
+                <p className="text-xs text-muted-foreground">
+                  {dashboardData.inventory.outOfStock} products are completely out
+                </p>
+              </div>
+            )}
+            {dashboardData.inventory.lowStock === 0 && dashboardData.inventory.outOfStock === 0 && (
+              <div className="p-3 bg-success-light rounded-lg">
+                <p className="text-sm font-medium">All Good!</p>
+                <p className="text-xs text-muted-foreground">
+                  No stock issues detected
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -182,15 +240,29 @@ export function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button className="w-full" size="sm">
+            <Button 
+              className="w-full" 
+              size="sm"
+              onClick={() => navigate('/sales')}
+            >
               <Receipt className="mr-2 h-4 w-4" />
               New Sale
             </Button>
-            <Button variant="outline" className="w-full" size="sm">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              size="sm"
+              onClick={() => navigate('/products')}
+            >
               <Package className="mr-2 h-4 w-4" />
               Add Product
             </Button>
-            <Button variant="outline" className="w-full" size="sm">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              size="sm"
+              onClick={() => navigate('/backup')}
+            >
               <BarChart3 className="mr-2 h-4 w-4" />
               View Reports
             </Button>
@@ -198,17 +270,40 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Chart Placeholder */}
+      {/* Sales Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Sales Chart</CardTitle>
+          <CardTitle>7-Day Sales Trend</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 bg-muted/20 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-              <p className="text-muted-foreground">Sales chart will be implemented next</p>
-            </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`} />
+                <Tooltip 
+                  formatter={(value, name) => [
+                    formatCurrency(Number(value)), 
+                    name === 'sales' ? 'Sales' : 'Profit'
+                  ]}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="sales" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: "hsl(var(--primary))" }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="profit" 
+                  stroke="hsl(var(--success))" 
+                  strokeWidth={2}
+                  dot={{ fill: "hsl(var(--success))" }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
