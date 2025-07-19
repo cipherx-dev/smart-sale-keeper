@@ -58,9 +58,10 @@ export function PosLayout({ children }: PosLayoutProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-all duration-300 ease-in-out lg:translate-x-0",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
+        style={{ position: 'fixed', top: 0, bottom: 0, left: 0 }}
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b bg-muted/30">
@@ -171,7 +172,7 @@ export function PosLayout({ children }: PosLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 px-6 pb-6 pt-0">
+        <main className="flex-1 px-6 pb-6 pt-0 ml-64 lg:ml-64">
           {children}
         </main>
       </div>
