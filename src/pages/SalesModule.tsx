@@ -62,7 +62,15 @@ export default function SalesModule() {
   const receivedAmount = watch("receivedAmount");
 
   useEffect(() => {
-    setProducts(db.getProducts());
+    const loadProducts = async () => {
+      try {
+        const productsData = await db.getProducts();
+        setProducts(productsData);
+      } catch (error) {
+        console.error('Error loading products:', error);
+      }
+    };
+    loadProducts();
   }, []);
 
   useEffect(() => {
@@ -177,21 +185,25 @@ export default function SalesModule() {
 
   const changeAmount = receivedAmount - totals.totalSale;
 
-  const handleBarcodeSearch = (data: SaleForm) => {
-    const product = db.findProductByBarcode(data.barcode);
-    if (product) {
-      addToCart(product);
-      setValue("barcode", "");
-    } else {
-      toast({
-        title: "Product Not Found",
-        description: "No product found with this barcode",
-        variant: "destructive",
-      });
+  const handleBarcodeSearch = async (data: SaleForm) => {
+    try {
+      const product = await db.findProductByBarcode(data.barcode);
+      if (product) {
+        addToCart(product);
+        setValue("barcode", "");
+      } else {
+        toast({
+          title: "Product Not Found",
+          description: "No product found with this barcode",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error searching product:', error);
     }
   };
 
-  const completeSale = () => {
+  const completeSale = async () => {
     if (cart.length === 0) {
       toast({
         title: "Empty Cart",
@@ -210,30 +222,42 @@ export default function SalesModule() {
       return;
     }
 
-    const sale: Omit<Sale, 'id' | 'voucherNumber' | 'createdAt'> = {
-      items: cart,
-      totalCost: totals.totalCost,
-      totalSale: totals.totalSale,
-      totalProfit: totals.totalProfit,
-      receivedAmount,
-      changeAmount,
-      createdBy: user?.username || "unknown",
-    };
+    try {
+      const sale: Omit<Sale, 'id' | 'voucherNumber' | 'createdAt'> = {
+        items: cart,
+        totalCost: totals.totalCost,
+        totalSale: totals.totalSale,
+        totalProfit: totals.totalProfit,
+        receivedAmount,
+        changeAmount,
+        createdBy: user?.id || "unknown",
+      };
 
-    const savedSale = db.saveSale(sale);
-    
-    toast({
-      title: "Sale Completed",
-      description: `Voucher ${savedSale.voucherNumber} created successfully`,
-    });
+      const savedSale = await db.saveSale(sale);
+      
+      toast({
+        title: "Sale Completed",
+        description: `Voucher ${savedSale.voucherNumber} created successfully`,
+      });
 
-    // Ask if user wants to print
-    printReceiptDialog(savedSale);
+      // Ask if user wants to print
+      printReceiptDialog(savedSale);
 
-    // Reset form and cart
-    setCart([]);
-    reset();
-    setProducts(db.getProducts()); // Refresh products to show updated quantities
+      // Reset form and cart
+      setCart([]);
+      reset();
+      
+      // Refresh products to show updated quantities
+      const updatedProducts = await db.getProducts();
+      setProducts(updatedProducts);
+    } catch (error) {
+      console.error('Error completing sale:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete sale",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatCurrency = (amount: number) => {
