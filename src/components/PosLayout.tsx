@@ -55,7 +55,7 @@ export function PosLayout({ children }: PosLayoutProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+          "fixed inset-y-0 left-0 z-50 w-64 bg-card transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -100,7 +100,7 @@ export function PosLayout({ children }: PosLayoutProps) {
       {/* Main content */}
       <div className="lg:pl-64 flex flex-col min-h-screen">
         {/* Top header */}
-        <header className="bg-card border-b border-border sticky top-0 z-40 flex-shrink-0">
+        <header className="bg-card sticky top-0 z-40 flex-shrink-0">
           <div className="flex items-center justify-between h-16 px-4">
             <Button
               variant="ghost"
