@@ -5,7 +5,7 @@ import { PlusCircle, Package, TrendingUp, AlertTriangle, ShoppingCart, FileText 
 
 const Index = () => {
   return (
-    <div className="space-y-6 -mt-6">
+    <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>

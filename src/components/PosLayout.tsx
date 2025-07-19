@@ -166,7 +166,7 @@ export function PosLayout({ children }: PosLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 px-6 pb-6">
+        <main className="flex-1 px-6 pb-6 pt-0">
           {children}
         </main>
       </div>
