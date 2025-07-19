@@ -8,10 +8,12 @@ import {
   Database,
   Settings,
   Menu,
-  X
+  X,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -29,6 +31,7 @@ interface PosLayoutProps {
 export function PosLayout({ children }: PosLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
+  const { logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
@@ -101,8 +104,18 @@ export function PosLayout({ children }: PosLayoutProps) {
               <Menu className="h-4 w-4" />
             </Button>
             
-            <div className="text-sm text-muted-foreground">
-              Welcome to your POS System
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                Welcome to your POS System
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={logout}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
             </div>
           </div>
         </header>

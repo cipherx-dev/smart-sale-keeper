@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +9,7 @@ import { LoginForm } from "@/components/LoginForm";
 import { useAuth } from "@/hooks/useAuth";
 import { PosLayout } from "@/components/PosLayout";
 import { Dashboard } from "@/components/Dashboard";
+import { db } from "@/lib/database";
 import SalesModule from "./pages/SalesModule";
 import ProductsModule from "./pages/ProductsModule";
 import Users from "./pages/Users";
@@ -19,6 +21,11 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const { isAuthenticated } = useAuth();
+  
+  // Initialize database when app starts
+  React.useEffect(() => {
+    db.initializeDatabase();
+  }, []);
   
   if (!isAuthenticated) {
     return <LoginForm />;

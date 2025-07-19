@@ -161,6 +161,27 @@ class LocalDatabase {
     return newUser;
   }
 
+  updateUser(id: string, updates: Partial<Omit<User, 'id' | 'createdAt'>>): User | null {
+    const users = this.getUsers();
+    const index = users.findIndex(u => u.id === id);
+    if (index === -1) return null;
+    
+    users[index] = {
+      ...users[index],
+      ...updates,
+    };
+    this.save('users', users);
+    return users[index];
+  }
+
+  deleteUser(id: string): boolean {
+    const users = this.getUsers();
+    const filtered = users.filter(u => u.id !== id);
+    if (filtered.length === users.length) return false;
+    this.save('users', filtered);
+    return true;
+  }
+
   // Initialize with sample data
   initializeDatabase(): void {
     if (this.getProducts().length === 0) {
