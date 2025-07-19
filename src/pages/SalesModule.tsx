@@ -260,6 +260,14 @@ export default function SalesModule() {
           </div>
         </div>
 
+        <Tabs defaultValue="sales" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="sales">Sales Terminal</TabsTrigger>
+            <TabsTrigger value="vouchers">Voucher List</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="sales" className="space-y-4">
+
         {/* Sales Terminal Content */}
         <div className="grid gap-6 md:grid-cols-2">
           {/* Left: Product Search & Cart */}
@@ -471,6 +479,12 @@ export default function SalesModule() {
             </Card>
           </div>
         </div>
+          </TabsContent>
+
+          <TabsContent value="vouchers" className="space-y-4">
+            <VoucherList onPrintVoucher={handlePrintVoucher} />
+          </TabsContent>
+        </Tabs>
       </div>
     );
   }

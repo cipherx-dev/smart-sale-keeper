@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Package, Plus, Edit, Trash2, Upload, Download, Printer, Barcode } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CategoryManager } from "@/components/CategoryManager";
+import { Package, Plus, Edit, Trash2, Upload, Download, Printer, Barcode, Tag } from "lucide-react";
 
 export default function Products() {
   return (
@@ -19,6 +21,14 @@ export default function Products() {
           Add Product
         </Button>
       </div>
+
+      <Tabs defaultValue="products" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="products">Products</TabsTrigger>
+          <TabsTrigger value="categories">Categories</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="products" className="space-y-4">
 
       {/* Quick Actions */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -112,6 +122,12 @@ export default function Products() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="categories" className="space-y-4">
+          <CategoryManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
