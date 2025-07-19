@@ -1,4 +1,5 @@
 import { useState } from "react";
+import posLogo from "@/assets/pos-logo.png";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -63,12 +64,16 @@ export function PosLayout({ children }: PosLayoutProps) {
       >
         {/* Sidebar Header */}
         <div className="flex items-center justify-between h-16 px-4 border-b bg-muted/30">
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground">
-              <Store className="h-4 w-4" />
-            </div>
+          <div className="flex items-center space-x-3">
+            <img 
+              src={posLogo} 
+              alt="POS System Logo" 
+              className="w-10 h-10 rounded-lg shadow-md"
+            />
             <div>
-              <h1 className="text-lg font-bold">POS System</h1>
+              <h1 className="text-lg font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                POS System
+              </h1>
               <p className="text-xs text-muted-foreground">Point of Sale</p>
             </div>
           </div>
