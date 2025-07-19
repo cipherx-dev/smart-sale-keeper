@@ -150,18 +150,18 @@ export function PosLayout({ children }: PosLayoutProps) {
       <div className="lg:pl-64 flex flex-col min-h-screen">
         {/* Mobile header */}
         <header className="sticky top-0 z-40 lg:hidden bg-card border-b">
-          <div className="flex items-center justify-between h-16 px-4">
+          <div className="flex items-center h-16 px-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSidebarOpen(true)}
+              className="mr-4"
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-lg font-semibold flex-1">
               {navigation.find(item => item.href === location.pathname)?.name || 'Dashboard'}
             </h2>
-            <div className="w-10" /> {/* Spacer for centering */}
           </div>
         </header>
 
