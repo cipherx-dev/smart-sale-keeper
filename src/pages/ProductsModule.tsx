@@ -35,17 +35,10 @@ const productSchema = z.object({
 
 type ProductForm = z.infer<typeof productSchema>;
 
-const categories = [
-  "Food",
-  "Beverages", 
-  "Snacks",
-  "Beauty",
-  "Medicine",
-  "Electronics",
-  "Clothing",
-  "Home & Garden",
-  "Other"
-];
+// Get categories from database instead of hardcoded array
+const getCategories = () => {
+  return db.getCategories();
+};
 
 export default function ProductsModule() {
   const { toast } = useToast();
@@ -304,7 +297,7 @@ export default function ProductsModule() {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((category) => (
+                      {getCategories().map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
