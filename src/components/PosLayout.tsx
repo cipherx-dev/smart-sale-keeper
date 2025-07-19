@@ -98,10 +98,10 @@ export function PosLayout({ children }: PosLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64">
+      <div className="lg:pl-64 flex flex-col min-h-screen">
         {/* Top header */}
-        <header className="bg-card border-b border-border sticky top-0 z-40">
-          <div className="flex items-center justify-between h-16 px-6">
+        <header className="bg-card border-b border-border sticky top-0 z-40 flex-shrink-0">
+          <div className="flex items-center justify-between h-16 px-4">
             <Button
               variant="ghost"
               size="sm"
@@ -129,7 +129,7 @@ export function PosLayout({ children }: PosLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-4">
+        <main className="flex-1 p-4">
           {children}
         </main>
       </div>
