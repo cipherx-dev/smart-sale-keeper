@@ -151,24 +151,6 @@ export function PosLayout({ children }: PosLayoutProps) {
               >
                 <Menu className="h-5 w-5" />
               </Button>
-              <div className="hidden lg:block">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {navigation.find(item => item.href === location.pathname)?.name || 'Dashboard'}
-                </h2>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <ThemeToggle />
-              <Button
-                variant="outline"
-                size="sm"
-                className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-                onClick={logout}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
             </div>
           </div>
         </header>
