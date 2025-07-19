@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const adminNavigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -110,10 +111,11 @@ export function PosLayout({ children }: PosLayoutProps) {
               <Menu className="h-4 w-4" />
             </Button>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <div className="text-sm text-muted-foreground">
                 Welcome {user?.username} ({user?.role})
               </div>
+              <ThemeToggle />
               <Button
                 variant="outline"
                 size="sm"
@@ -127,7 +129,7 @@ export function PosLayout({ children }: PosLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-4">
           {children}
         </main>
       </div>

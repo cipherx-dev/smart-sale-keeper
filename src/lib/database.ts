@@ -189,6 +189,12 @@ class LocalDatabase {
       this.saveUser({ username: 'admin', password: 'admin123', role: 'admin' });
       this.saveUser({ username: 'staff', password: 'staff123', role: 'staff' });
     }
+    
+    // Clear all existing categories - user will add manually
+    const products = this.getProducts();
+    products.forEach(product => {
+      this.updateProduct(product.id, { category: 'Uncategorized' });
+    });
   }
 
   // Category management methods

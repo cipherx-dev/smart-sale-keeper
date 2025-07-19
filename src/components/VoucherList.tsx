@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { db, Sale } from "@/lib/database";
-import { Edit, Trash2, Receipt, Eye } from "lucide-react";
+import { Edit, Trash2, Receipt, Eye, Search, Calendar } from "lucide-react";
 import { format } from "date-fns";
 
 interface VoucherListProps {
@@ -21,20 +21,46 @@ export function VoucherList({ onEditVoucher, onPrintVoucher }: VoucherListProps)
   const { toast } = useToast();
   const { user } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
+  const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [editDialog, setEditDialog] = useState(false);
   const [viewDialog, setViewDialog] = useState(false);
   const [editAmount, setEditAmount] = useState<number>(0);
+  const [searchVoucher, setSearchVoucher] = useState("");
+  const [searchDate, setSearchDate] = useState("");
 
   useEffect(() => {
     loadSales();
   }, []);
+
+  useEffect(() => {
+    filterSales();
+  }, [sales, searchVoucher, searchDate]);
 
   const loadSales = () => {
     const allSales = db.getSales().sort((a, b) => 
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
     setSales(allSales);
+  };
+
+  const filterSales = () => {
+    let filtered = sales;
+
+    if (searchVoucher) {
+      filtered = filtered.filter(sale => 
+        sale.voucherNumber.toLowerCase().includes(searchVoucher.toLowerCase())
+      );
+    }
+
+    if (searchDate) {
+      filtered = filtered.filter(sale => {
+        const saleDate = format(new Date(sale.createdAt), 'yyyy-MM-dd');
+        return saleDate === searchDate;
+      });
+    }
+
+    setFilteredSales(filtered);
   };
 
   const formatCurrency = (amount: number) => {
@@ -97,10 +123,39 @@ export function VoucherList({ onEditVoucher, onPrintVoucher }: VoucherListProps)
         <CardHeader>
           <CardTitle className="flex items-center">
             <Receipt className="mr-2 h-5 w-5" />
-            Sales Vouchers ({sales.length})
+            Sales Vouchers ({filteredSales.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Search Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="space-y-2">
+              <Label htmlFor="searchVoucher">Search by Voucher Number</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="searchVoucher"
+                  placeholder="Enter voucher number..."
+                  value={searchVoucher}
+                  onChange={(e) => setSearchVoucher(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="searchDate">Search by Date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="searchDate"
+                  type="date"
+                  value={searchDate}
+                  onChange={(e) => setSearchDate(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -114,7 +169,7 @@ export function VoucherList({ onEditVoucher, onPrintVoucher }: VoucherListProps)
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sales.map((sale) => (
+              {filteredSales.map((sale) => (
                 <TableRow key={sale.id}>
                   <TableCell>
                     <Badge variant="outline">{sale.voucherNumber}</Badge>
