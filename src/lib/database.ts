@@ -184,22 +184,51 @@ class LocalDatabase {
 
   // Initialize with sample data
   initializeDatabase(): void {
-    if (this.getProducts().length === 0) {
-      const sampleProducts: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>[] = [
-        { name: 'Coca Cola 250ml', barcode: '8851234567890', costPrice: 300, salePrice: 500, quantity: 50, category: 'Beverages' },
-        { name: 'Mama Instant Noodles', barcode: '8851234567891', costPrice: 400, salePrice: 600, quantity: 3, category: 'Food' },
-        { name: 'Lay\'s Chips', barcode: '8851234567892', costPrice: 600, salePrice: 1000, quantity: 0, category: 'Snacks' },
-        { name: 'Nivea Face Cream', barcode: '8851234567893', costPrice: 2000, salePrice: 3500, quantity: 15, category: 'Beauty' },
-        { name: 'Panadol 500mg', barcode: '8851234567894', costPrice: 800, salePrice: 1200, quantity: 2, category: 'Medicine' },
-      ];
-      
-      sampleProducts.forEach(product => this.saveProduct(product));
-    }
-
+    // Only create default admin user if no users exist
     if (this.getUsers().length === 0) {
       this.saveUser({ username: 'admin', password: 'admin123', role: 'admin' });
       this.saveUser({ username: 'staff', password: 'staff123', role: 'staff' });
     }
+  }
+
+  // Category management methods
+  getCategories(): string[] {
+    const products = this.getProducts();
+    const categories = [...new Set(products.map(p => p.category))];
+    return categories.filter(c => c && c.trim());
+  }
+
+  updateSale(id: string, updates: Partial<Sale>): Sale | null {
+    const sales = this.getSales();
+    const index = sales.findIndex(s => s.id === id);
+    if (index === -1) return null;
+    
+    sales[index] = {
+      ...sales[index],
+      ...updates,
+    };
+    this.save('sales', sales);
+    return sales[index];
+  }
+
+  deleteSale(id: string): boolean {
+    const sales = this.getSales();
+    const sale = sales.find(s => s.id === id);
+    if (!sale) return false;
+    
+    // Restore product quantities
+    sale.items.forEach(item => {
+      const product = this.getProducts().find(p => p.id === item.productId);
+      if (product) {
+        this.updateProduct(product.id, {
+          quantity: product.quantity + item.quantity
+        });
+      }
+    });
+    
+    const filtered = sales.filter(s => s.id !== id);
+    this.save('sales', filtered);
+    return true;
   }
 
   // Analytics methods

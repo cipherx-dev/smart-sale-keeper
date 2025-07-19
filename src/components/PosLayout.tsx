@@ -15,13 +15,17 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
-const navigation = [
+const adminNavigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Sales", href: "/sales", icon: ShoppingCart },
   { name: "Products", href: "/products", icon: Package },
   { name: "Users", href: "/users", icon: Users },
   { name: "Backup", href: "/backup", icon: Database },
   { name: "Settings", href: "/settings", icon: Settings },
+];
+
+const staffNavigation = [
+  { name: "Sales", href: "/sales", icon: ShoppingCart },
 ];
 
 interface PosLayoutProps {
@@ -31,7 +35,9 @@ interface PosLayoutProps {
 export function PosLayout({ children }: PosLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  
+  const navigation = user?.role === 'admin' ? adminNavigation : staffNavigation;
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,7 +112,7 @@ export function PosLayout({ children }: PosLayoutProps) {
             
             <div className="flex items-center gap-4">
               <div className="text-sm text-muted-foreground">
-                Welcome to your POS System
+                Welcome {user?.username} ({user?.role})
               </div>
               <Button
                 variant="outline"
