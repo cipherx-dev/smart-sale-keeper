@@ -41,7 +41,7 @@ export function PosLayout({ children }: PosLayoutProps) {
   const navigation = user?.role === 'admin' ? adminNavigation : staffNavigation;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
