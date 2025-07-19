@@ -58,17 +58,25 @@ export function Dashboard() {
   const [chartData] = useState(generateChartData());
 
   useEffect(() => {
-    // Initialize database with sample data
-    db.initializeDatabase();
+    const loadDashboardData = async () => {
+      try {
+        // Initialize database with sample data
+        db.initializeDatabase();
+        
+        // Load real data
+        const todaySales = await db.getTodaysSales();
+        const inventory = await db.getInventoryStats();
+        
+        setDashboardData({
+          todaySales,
+          inventory
+        });
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      }
+    };
     
-    // Load real data
-    const todaySales = db.getTodaysSales();
-    const inventory = db.getInventoryStats();
-    
-    setDashboardData({
-      todaySales,
-      inventory
-    });
+    loadDashboardData();
   }, []);
 
   const formatCurrency = (amount: number) => {
