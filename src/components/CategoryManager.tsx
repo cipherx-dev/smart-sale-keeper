@@ -22,10 +22,15 @@ export function CategoryManager() {
     loadData();
   }, []);
 
-  const loadData = () => {
-    const allProducts = db.getProducts();
-    setProducts(allProducts);
-    setCategories(db.getCategories());
+  const loadData = async () => {
+    try {
+      const allProducts = await db.getProducts();
+      const categoriesData = await db.getCategories();
+      setProducts(allProducts);
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   };
 
   const addCategory = () => {

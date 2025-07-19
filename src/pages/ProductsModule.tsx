@@ -35,15 +35,11 @@ const productSchema = z.object({
 
 type ProductForm = z.infer<typeof productSchema>;
 
-// Get categories from database instead of hardcoded array
-const getCategories = () => {
-  return db.getCategories();
-};
-
-export default function ProductsModule() {
+const ProductsModule = () => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -78,17 +74,23 @@ export default function ProductsModule() {
     }
   }, [searchTerm, products]);
 
-  const loadProducts = () => {
-    const allProducts = db.getProducts();
-    setProducts(allProducts);
-    setFilteredProducts(allProducts);
+  const loadProducts = async () => {
+    try {
+      const allProducts = await db.getProducts();
+      const categoriesData = await db.getCategories();
+      setProducts(allProducts);
+      setFilteredProducts(allProducts);
+      setCategories(categoriesData);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    }
   };
 
-  const onSubmit = (data: ProductForm) => {
+  const onSubmit = async (data: ProductForm) => {
     try {
       if (editingProduct) {
         // Update existing product
-        const updated = db.updateProduct(editingProduct.id, data);
+        const updated = await db.updateProduct(editingProduct.id, data);
         if (updated) {
           toast({
             title: "Product Updated",
@@ -97,7 +99,7 @@ export default function ProductsModule() {
         }
       } else {
         // Check if barcode already exists
-        const existingProduct = db.findProductByBarcode(data.barcode);
+        const existingProduct = await db.findProductByBarcode(data.barcode);
         if (existingProduct) {
           toast({
             title: "Duplicate Barcode",
@@ -108,14 +110,14 @@ export default function ProductsModule() {
         }
 
         // Create new product
-        db.saveProduct(data);
+        await db.saveProduct(data);
         toast({
           title: "Product Added",
           description: "New product has been added successfully",
         });
       }
 
-      loadProducts();
+      await loadProducts();
       resetForm();
     } catch (error) {
       toast({
@@ -137,16 +139,24 @@ export default function ProductsModule() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (product: Product) => {
+  const handleDelete = async (product: Product) => {
     if (window.confirm(`Are you sure you want to delete "${product.name}"?`)) {
-      const success = db.deleteProduct(product.id);
-      if (success) {
-        toast({
-          title: "Product Deleted",
-          description: "Product has been deleted successfully",
-        });
-        loadProducts();
-      } else {
+      try {
+        const success = await db.deleteProduct(product.id);
+        if (success) {
+          toast({
+            title: "Product Deleted",
+            description: "Product has been deleted successfully",
+          });
+          await loadProducts();
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to delete product",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
         toast({
           title: "Error",
           description: "Failed to delete product",
@@ -297,7 +307,7 @@ export default function ProductsModule() {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {getCategories().map((category) => (
+                      {categories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
                         </SelectItem>
@@ -480,4 +490,6 @@ export default function ProductsModule() {
       </Card>
     </div>
   );
-}
+};
+
+export default ProductsModule;

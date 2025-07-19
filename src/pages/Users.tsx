@@ -67,10 +67,14 @@ export default function Users() {
     }
   }, [searchTerm, users]);
 
-  const loadUsers = () => {
-    const allUsers = db.getUsers();
-    setUsers(allUsers);
-    setFilteredUsers(allUsers);
+  const loadUsers = async () => {
+    try {
+      const allUsers = await db.getUsers();
+      setUsers(allUsers);
+      setFilteredUsers(allUsers);
+    } catch (error) {
+      console.error('Error loading users:', error);
+    }
   };
 
   const onSubmit = (data: UserForm) => {
