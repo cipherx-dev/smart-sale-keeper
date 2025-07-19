@@ -43,7 +43,7 @@ export function PosLayout({ children }: PosLayoutProps) {
   const navigation = user?.role === 'admin' ? adminNavigation : staffNavigation;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/10">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/10 flex">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
@@ -147,7 +147,7 @@ export function PosLayout({ children }: PosLayoutProps) {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen">
         {/* Mobile header */}
         <header className="sticky top-0 z-40 lg:hidden bg-card border-b">
           <div className="flex items-center h-16 px-4">
