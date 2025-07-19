@@ -14,16 +14,192 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          barcode: string | null
+          category: string
+          cost_price: number
+          created_at: string | null
+          id: string
+          name: string
+          quantity: number
+          sale_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          barcode?: string | null
+          category?: string
+          cost_price?: number
+          created_at?: string | null
+          id?: string
+          name: string
+          quantity?: number
+          sale_price?: number
+          updated_at?: string | null
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          cost_price?: number
+          created_at?: string | null
+          id?: string
+          name?: string
+          quantity?: number
+          sale_price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sale_items: {
+        Row: {
+          cost_price: number
+          created_at: string | null
+          id: string
+          product_id: string | null
+          product_name: string
+          profit: number
+          quantity: number
+          sale_id: string | null
+          sale_price: number
+          total_cost: number
+          total_sale: number
+        }
+        Insert: {
+          cost_price: number
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          product_name: string
+          profit: number
+          quantity: number
+          sale_id?: string | null
+          sale_price: number
+          total_cost: number
+          total_sale: number
+        }
+        Update: {
+          cost_price?: number
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          profit?: number
+          quantity?: number
+          sale_id?: string | null
+          sale_price?: number
+          total_cost?: number
+          total_sale?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          change_amount: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          received_amount: number
+          total_cost: number
+          total_profit: number
+          total_sale: number
+          voucher_number: string
+        }
+        Insert: {
+          change_amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          received_amount?: number
+          total_cost?: number
+          total_profit?: number
+          total_sale?: number
+          voucher_number: string
+        }
+        Update: {
+          change_amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          received_amount?: number
+          total_cost?: number
+          total_profit?: number
+          total_sale?: number
+          voucher_number?: string
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_voucher_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      user_role: "admin" | "staff"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +326,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_role: ["admin", "staff"],
+    },
   },
 } as const

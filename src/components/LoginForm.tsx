@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Lock, User } from 'lucide-react';
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  email: z.string().email('Valid email is required'),
   password: z.string().min(1, 'Password is required'),
 });
 
@@ -19,7 +19,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, loading } = useAuth();
   const { toast } = useToast();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>({
@@ -29,22 +29,30 @@ export function LoginForm() {
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     
-    const success = login(data.username, data.password);
-    
-    if (success) {
-      toast({
-        title: "Login successful",
-        description: "Welcome to POS System",
-      });
-    } else {
+    try {
+      const success = await login(data.email, data.password);
+      
+      if (success) {
+        toast({
+          title: "Login successful",
+          description: "Welcome to POS System",
+        });
+      } else {
+        toast({
+          title: "Login failed", 
+          description: "Invalid email or password",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
         title: "Login failed",
-        description: "Invalid username or password",
+        description: "An error occurred during login",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -59,18 +67,19 @@ export function LoginForm() {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="username"
-                  {...register('username')}
+                  id="email"
+                  type="email"
+                  {...register('email')}
                   className="pl-10"
-                  placeholder="Enter username"
+                  placeholder="Enter email"
                 />
               </div>
-              {errors.username && (
-                <p className="text-sm text-destructive">{errors.username.message}</p>
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email.message}</p>
               )}
             </div>
             
@@ -97,10 +106,10 @@ export function LoginForm() {
           </form>
           
           <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-sm font-medium mb-2">Demo Accounts:</p>
+            <p className="text-sm font-medium mb-2">Authentication:</p>
             <div className="space-y-1 text-xs text-muted-foreground">
-              <div>Admin: username: <code>admin</code>, password: <code>admin123</code></div>
-              <div>Staff: username: <code>staff</code>, password: <code>staff123</code></div>
+              <div>You need to sign up with Supabase Auth first.</div>
+              <div>Use your email and password to login.</div>
             </div>
           </div>
         </CardContent>
