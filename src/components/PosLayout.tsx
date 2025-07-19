@@ -175,7 +175,7 @@ export function PosLayout({ children }: PosLayoutProps) {
 
         {/* Page content */}
         <main className="flex-1 p-4 lg:p-6">
-          <div className="mx-auto max-w-7xl space-y-4">
+          <div className="mx-auto max-w-7xl">
             {children}
           </div>
         </main>
