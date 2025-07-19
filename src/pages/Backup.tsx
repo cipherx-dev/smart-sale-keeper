@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,14 +21,42 @@ export default function Backup() {
   const { toast } = useToast();
   const [isCreatingBackup, setIsCreatingBackup] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [stats, setStats] = useState({
+    products: 0,
+    sales: 0,
+    users: 0,
+    dataSize: 0
+  });
+
+  // Load stats on component mount
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const products = await db.getProducts();
+        const sales = await db.getSales();
+        const users = await db.getUsers();
+        
+        setStats({
+          products: products.length,
+          sales: sales.length,
+          users: users.length,
+          dataSize: JSON.stringify({ products, sales, users }).length
+        });
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    };
+    
+    loadStats();
+  }, []);
 
   const createBackup = async () => {
     setIsCreatingBackup(true);
     try {
       // Get all data from database
-      const products = db.getProducts();
-      const sales = db.getSales();
-      const users = db.getUsers();
+      const products = await db.getProducts();
+      const sales = await db.getSales();
+      const users = await db.getUsers();
 
       const backupData = {
         timestamp: new Date().toISOString(),
@@ -156,18 +184,6 @@ export default function Backup() {
         }, 1000);
       }
     }
-  };
-
-  // Calculate current data stats
-  const stats = {
-    products: db.getProducts().length,
-    sales: db.getSales().length,
-    users: db.getUsers().length,
-    dataSize: JSON.stringify({
-      products: db.getProducts(),
-      sales: db.getSales(),
-      users: db.getUsers()
-    }).length
   };
 
   return (

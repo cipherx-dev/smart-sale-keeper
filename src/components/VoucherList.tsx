@@ -37,11 +37,16 @@ export function VoucherList({ onEditVoucher, onPrintVoucher }: VoucherListProps)
     filterSales();
   }, [sales, searchVoucher, searchDate]);
 
-  const loadSales = () => {
-    const allSales = db.getSales().sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    setSales(allSales);
+  const loadSales = async () => {
+    try {
+      const allSales = await db.getSales();
+      const sortedSales = allSales.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setSales(sortedSales);
+    } catch (error) {
+      console.error('Error loading sales:', error);
+    }
   };
 
   const filterSales = () => {
@@ -77,33 +82,52 @@ export function VoucherList({ onEditVoucher, onPrintVoucher }: VoucherListProps)
     setEditDialog(true);
   };
 
-  const saveEditedSale = () => {
+  const saveEditedSale = async () => {
     if (!selectedSale) return;
 
-    const updatedSale = db.updateSale(selectedSale.id, {
-      receivedAmount: editAmount,
-      changeAmount: editAmount - selectedSale.totalSale
-    });
-
-    if (updatedSale) {
-      toast({
-        title: "Voucher Updated",
-        description: `Voucher ${selectedSale.voucherNumber} has been updated`,
+    try {
+      const updatedSale = await db.updateSale(selectedSale.id, {
+        receivedAmount: editAmount,
+        changeAmount: editAmount - selectedSale.totalSale
       });
-      loadSales();
-      setEditDialog(false);
-      onEditVoucher?.(updatedSale);
+
+      if (updatedSale) {
+        toast({
+          title: "Voucher Updated",
+          description: `Voucher ${selectedSale.voucherNumber} has been updated`,
+        });
+        await loadSales();
+        setEditDialog(false);
+        onEditVoucher?.(updatedSale);
+      }
+    } catch (error) {
+      console.error('Error updating sale:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update voucher",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDeleteSale = (sale: Sale) => {
+  const handleDeleteSale = async (sale: Sale) => {
     if (window.confirm(`Are you sure you want to delete voucher ${sale.voucherNumber}?`)) {
-      if (db.deleteSale(sale.id)) {
+      try {
+        const success = await db.deleteSale(sale.id);
+        if (success) {
+          toast({
+            title: "Voucher Deleted",
+            description: `Voucher ${sale.voucherNumber} has been deleted and stock restored`,
+          });
+          await loadSales();
+        }
+      } catch (error) {
+        console.error('Error deleting sale:', error);
         toast({
-          title: "Voucher Deleted",
-          description: `Voucher ${sale.voucherNumber} has been deleted and stock restored`,
+          title: "Error",
+          description: "Failed to delete voucher",
+          variant: "destructive",
         });
-        loadSales();
       }
     }
   };
