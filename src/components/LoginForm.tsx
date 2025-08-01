@@ -130,7 +130,7 @@ const LoginForm = () => {
               <Input
                 id="username"
                 {...register('username', { required: 'Username is required' })}
-                placeholder="Enter username (admin or staff)"
+                placeholder="Enter username"
                 disabled={isLoading}
               />
               {errors.username && (
@@ -154,20 +154,14 @@ const LoginForm = () => {
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
-                "Signing in..."
+                "Logging in..."
               ) : (
                 <>
                   <LogIn className="mr-2 h-4 w-4" />
-                  Sign In
+                  Login
                 </>
               )}
             </Button>
-
-            <div className="text-sm text-muted-foreground text-center space-y-1">
-              <div>Default Credentials:</div>
-              <div>Admin: admin / cisco@123</div>
-              <div>Staff: staff / staff123</div>
-            </div>
           </form>
         </CardContent>
       </Card>
