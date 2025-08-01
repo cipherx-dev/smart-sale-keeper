@@ -13,8 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { db, Product, Sale, SaleItem } from "@/lib/database";
-import { VoucherList } from "@/components/VoucherList";
-import { CategoryManager } from "@/components/CategoryManager";
+import VoucherList from "@/components/VoucherList";
+import CategoryManager from "@/components/CategoryManager";
 import { printReceiptDialog } from "@/components/PrintReceipt";
 import {
   Plus,

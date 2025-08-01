@@ -1,3 +1,4 @@
+
 import React from "react";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/AuthProvider";
-import { LoginForm } from "@/components/LoginForm";
+import LoginForm from "@/components/LoginForm";
 import { useAuth } from "@/hooks/useAuth";
 import { PosLayout } from "@/components/PosLayout";
 import { Dashboard } from "@/components/Dashboard";
