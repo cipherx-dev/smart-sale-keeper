@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export default function VoucherList({ onPrintVoucher }: VoucherListProps) {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
 
   useEffect(() => {
     loadSales();
@@ -92,26 +94,24 @@ export default function VoucherList({ onPrintVoucher }: VoucherListProps) {
     }
   };
 
-  const handleSaleUpdated = (updatedSale: Sale) => {
-    setSales(sales.map(sale => 
-      sale.id === updatedSale.id ? updatedSale : sale
-    ));
+  const handleEditClick = (sale: Sale) => {
+    setEditingSale(sale);
+    setIsEditorOpen(true);
+  };
+
+  const handleEditorClose = () => {
+    setIsEditorOpen(false);
     setEditingSale(null);
+  };
+
+  const handleVoucherUpdated = () => {
+    loadSales(); // Reload the sales list
+    handleEditorClose();
     toast({
       title: "Success",
       description: "Voucher updated successfully",
     });
   };
-
-  if (editingSale) {
-    return (
-      <VoucherEditor
-        sale={editingSale}
-        onSave={handleSaleUpdated}
-        onCancel={() => setEditingSale(null)}
-      />
-    );
-  }
 
   if (loading) {
     return (
@@ -185,7 +185,7 @@ export default function VoucherList({ onPrintVoucher }: VoucherListProps) {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setEditingSale(sale)}
+                          onClick={() => handleEditClick(sale)}
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
@@ -247,6 +247,16 @@ export default function VoucherList({ onPrintVoucher }: VoucherListProps) {
           ))
         )}
       </div>
+
+      {/* Voucher Editor Dialog */}
+      {editingSale && (
+        <VoucherEditor
+          sale={editingSale}
+          isOpen={isEditorOpen}
+          onClose={handleEditorClose}
+          onUpdated={handleVoucherUpdated}
+        />
+      )}
     </div>
   );
 }
