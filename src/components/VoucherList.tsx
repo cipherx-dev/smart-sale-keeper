@@ -1,27 +1,32 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import { db, Sale } from "@/lib/database";
+import VoucherEditor from "./VoucherEditor";
 import { useAuth } from "@/hooks/useAuth";
-import VoucherEditor from "@/components/VoucherEditor";
 import {
-  FileText,
   Search,
+  Calendar,
+  Printer,
   Edit,
   Trash2,
-  Eye,
-  Calendar,
+  Receipt,
   DollarSign,
 } from "lucide-react";
+import { format } from "date-fns";
 
-const VoucherList = () => {
+interface VoucherListProps {
+  onPrintVoucher?: (sale: Sale) => void;
+}
+
+export default function VoucherList({ onPrintVoucher }: VoucherListProps) {
+  const { toast } = useToast();
   const { user } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
-  const [filteredSales, setFilteredSales] = useState<Sale[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
 
@@ -29,41 +34,47 @@ const VoucherList = () => {
     loadSales();
   }, []);
 
-  useEffect(() => {
-    if (searchTerm.trim()) {
-      setFilteredSales(
-        sales.filter(sale =>
-          sale.voucherNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          sale.items.some(item => 
-            item.productName.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        )
-      );
-    } else {
-      setFilteredSales(sales);
-    }
-  }, [searchTerm, sales]);
+  const filteredSales = sales.filter(sale =>
+    sale.voucherNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    sale.createdBy.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const loadSales = async () => {
     try {
-      const allSales = await db.getSales();
-      setSales(allSales);
-      setFilteredSales(allSales);
+      setLoading(true);
+      const salesData = await db.getSales();
+      setSales(salesData);
     } catch (error) {
       console.error('Error loading sales:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load sales data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = async (sale: Sale) => {
-    if (window.confirm(`Are you sure you want to delete voucher ${sale.voucherNumber}?`)) {
-      try {
-        const success = await db.deleteSale(sale.id);
-        if (success) {
-          await loadSales();
-        }
-      } catch (error) {
-        console.error('Error deleting sale:', error);
-      }
+  const deleteSale = async (saleId: string) => {
+    if (!window.confirm('Are you sure you want to delete this voucher? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await db.deleteSale(saleId);
+      toast({
+        title: "Success",
+        description: "Voucher deleted successfully",
+      });
+      loadSales(); // Reload the sales list
+    } catch (error) {
+      console.error('Error deleting sale:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete voucher",
+        variant: "destructive",
+      });
     }
   };
 
@@ -75,139 +86,167 @@ const VoucherList = () => {
     }).format(amount);
   };
 
-  const canEdit = user?.role === 'admin';
+  const handlePrint = (sale: Sale) => {
+    if (onPrintVoucher) {
+      onPrintVoucher(sale);
+    }
+  };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Sales Vouchers</h1>
-        <p className="text-muted-foreground">View and manage all sales transactions</p>
-      </div>
+  const handleSaleUpdated = (updatedSale: Sale) => {
+    setSales(sales.map(sale => 
+      sale.id === updatedSale.id ? updatedSale : sale
+    ));
+    setEditingSale(null);
+    toast({
+      title: "Success",
+      description: "Voucher updated successfully",
+    });
+  };
 
-      {/* Search */}
+  if (editingSale) {
+    return (
+      <VoucherEditor
+        sale={editingSale}
+        onSave={handleSaleUpdated}
+        onCancel={() => setEditingSale(null)}
+      />
+    );
+  }
+
+  if (loading) {
+    return (
       <Card>
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search vouchers by number or product name"
-              className="pl-10"
-            />
-          </div>
+        <CardContent className="flex items-center justify-center p-6">
+          <div className="text-muted-foreground">Loading vouchers...</div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {/* Vouchers Table */}
+  return (
+    <div className="space-y-4">
+      {/* Search */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Vouchers ({filteredSales.length})
+          <CardTitle className="flex items-center">
+            <Search className="mr-2 h-5 w-5" />
+            Search Vouchers
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Voucher #</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Items</TableHead>
-                <TableHead>Total Sale</TableHead>
-                <TableHead>Profit</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSales.map((sale) => (
-                <TableRow key={sale.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <code className="font-mono text-sm">{sale.voucherNumber}</code>
+          <Input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by voucher number or cashier name"
+          />
+        </CardContent>
+      </Card>
+
+      {/* Voucher List */}
+      <div className="space-y-4">
+        {filteredSales.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <Receipt className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                {searchTerm ? 'No vouchers found matching your search' : 'No vouchers found'}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          filteredSales.map((sale) => (
+            <Card key={sale.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <Receipt className="mr-2 h-5 w-5" />
+                      {sale.voucherNumber}
+                    </CardTitle>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                      <span className="flex items-center">
+                        <Calendar className="mr-1 h-4 w-4" />
+                        {format(new Date(sale.createdAt), 'dd/MM/yyyy HH:mm')}
+                      </span>
+                      <span>Cashier: {sale.createdBy}</span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <div>{new Date(sale.createdAt).toLocaleDateString()}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {new Date(sale.createdAt).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{sale.items.length} items</div>
-                      <div className="text-sm text-muted-foreground">
-                        {sale.items.reduce((sum, item) => sum + item.quantity, 0)} qty
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-green-600" />
-                      <div className="font-medium">{formatCurrency(sale.totalSale)}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-green-600 font-medium">
-                      +{formatCurrency(sale.totalProfit)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">Completed</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {canEdit && (
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePrint(sale)}
+                    >
+                      <Printer className="h-4 w-4 mr-1" />
+                      Print
+                    </Button>
+                    {user?.role === 'admin' && (
+                      <>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => setEditingSale(sale)}
                         >
-                          <Edit className="h-3 w-3" />
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
                         </Button>
-                      )}
-                      {canEdit && (
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => handleDelete(sale)}
+                          onClick={() => deleteSale(sale.id)}
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {/* Items */}
+                  <div className="space-y-1">
+                    {sale.items.map((item, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>{item.productName} x {item.quantity}</span>
+                        <span>{formatCurrency(item.totalSale)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Summary */}
+                  <div className="border-t pt-3 space-y-1">
+                    <div className="flex justify-between font-medium">
+                      <span>Total:</span>
+                      <span>{formatCurrency(sale.totalSale)}</span>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    <div className="flex justify-between text-sm text-muted-foreground">
+                      <span>Cost:</span>
+                      <span>{formatCurrency(sale.totalCost)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-success">
+                      <span>Profit:</span>
+                      <span>+{formatCurrency(sale.totalProfit)}</span>
+                    </div>
+                  </div>
 
-          {filteredSales.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? "No vouchers match your search" : "No sales vouchers found"}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Voucher Editor Dialog */}
-      {editingSale && (
-        <VoucherEditor
-          sale={editingSale}
-          isOpen={!!editingSale}
-          onClose={() => setEditingSale(null)}
-          onUpdated={loadSales}
-        />
-      )}
+                  {/* Payment Info */}
+                  <div className="border-t pt-3 grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Received:</span>
+                      <div className="font-medium">{formatCurrency(sale.receivedAmount)}</div>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Change:</span>
+                      <div className="font-medium">{formatCurrency(sale.changeAmount)}</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
     </div>
   );
-};
-
-export default VoucherList;
+}
