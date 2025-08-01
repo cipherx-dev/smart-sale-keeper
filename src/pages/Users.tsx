@@ -77,11 +77,10 @@ export default function Users() {
     }
   };
 
-  const onSubmit = (data: UserForm) => {
+  const onSubmit = async (data: UserForm) => {
     try {
       if (editingUser) {
-        // Update existing user
-        const updated = db.updateUser(editingUser.id, data);
+        const updated = await db.updateUser(editingUser.id, data);
         if (updated) {
           toast({
             title: "User Updated",
@@ -89,7 +88,6 @@ export default function Users() {
           });
         }
       } else {
-        // Check if username already exists
         const existingUser = users.find(u => u.username === data.username);
         if (existingUser) {
           toast({
@@ -100,15 +98,14 @@ export default function Users() {
           return;
         }
 
-        // Create new user
-        db.saveUser(data);
+        await db.saveUser(data);
         toast({
           title: "User Added",
           description: "New user has been added successfully",
         });
       }
 
-      loadUsers();
+      await loadUsers();
       resetForm();
     } catch (error) {
       toast({
@@ -122,12 +119,12 @@ export default function Users() {
   const handleEdit = (user: User) => {
     setEditingUser(user);
     setValue("username", user.username);
-    setValue("password", ""); // Don't prefill password for security
+    setValue("password", "");
     setValue("role", user.role);
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (user: User) => {
+  const handleDelete = async (user: User) => {
     if (user.id === currentUser?.id) {
       toast({
         title: "Cannot Delete",
@@ -138,13 +135,13 @@ export default function Users() {
     }
 
     if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
-      const success = db.deleteUser(user.id);
+      const success = await db.deleteUser(user.id);
       if (success) {
         toast({
           title: "User Deleted",
           description: "User has been deleted successfully",
         });
-        loadUsers();
+        await loadUsers();
       } else {
         toast({
           title: "Error",
@@ -171,7 +168,6 @@ export default function Users() {
     staff: users.filter(u => u.role === 'staff').length,
   };
 
-  // Only admin users can access this module
   if (currentUser?.role !== 'admin') {
     return (
       <div className="space-y-6">
@@ -196,7 +192,6 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
@@ -270,7 +265,6 @@ export default function Users() {
         </Dialog>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-4">
@@ -309,7 +303,6 @@ export default function Users() {
         </Card>
       </div>
 
-      {/* Search */}
       <Card>
         <CardContent className="p-4">
           <div className="relative">
@@ -324,7 +317,6 @@ export default function Users() {
         </CardContent>
       </Card>
 
-      {/* Users Table */}
       <Card>
         <CardHeader>
           <CardTitle>Users ({filteredUsers.length})</CardTitle>

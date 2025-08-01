@@ -1,85 +1,115 @@
-import { useState } from 'react';
+
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { Lock, User, UserPlus } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-const authSchema = z.object({
-  email: z.string().email('Valid email is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  username: z.string().min(2, 'Username must be at least 2 characters').optional(),
-});
+interface LoginForm {
+  username: string;
+  password: string;
+}
 
-type AuthForm = z.infer<typeof authSchema>;
-
-export function LoginForm() {
+const LoginForm = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const { login, loading } = useAuth();
   const { toast } = useToast();
+  const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<AuthForm>({
-    resolver: zodResolver(authSchema),
-  });
+  // Hardcoded users
+  const defaultUsers = {
+    admin: { username: 'admin', password: 'cisco@123', role: 'admin' as const, email: 'admin@pos.local' },
+    staff: { username: 'staff', password: 'staff123', role: 'staff' as const, email: 'staff@pos.local' }
+  };
 
-  const onSubmit = async (data: AuthForm) => {
+  const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
     
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email: data.email,
+      // Check hardcoded credentials
+      let userInfo = null;
+      if (data.username === 'admin' && data.password === 'cisco@123') {
+        userInfo = defaultUsers.admin;
+      } else if (data.username === 'staff' && data.password === 'staff123') {
+        userInfo = defaultUsers.staff;
+      }
+
+      if (!userInfo) {
+        toast({
+          title: "Invalid Credentials",
+          description: "Username or password is incorrect",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Try to sign in with Supabase Auth using email
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: userInfo.email,
+        password: data.password,
+      });
+
+      if (authError) {
+        // If user doesn't exist, create them
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: userInfo.email,
           password: data.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
             data: {
-              username: data.username || data.email.split('@')[0],
-              role: 'staff'
+              username: userInfo.username,
+              role: userInfo.role,
             }
           }
         });
 
-        if (error) {
+        if (signUpError) {
+          console.error('Sign up error:', signUpError);
           toast({
-            title: "Sign up failed",
-            description: error.message,
+            title: "Authentication Error",
+            description: "Failed to create user account",
             variant: "destructive",
           });
-        } else {
-          toast({
-            title: "Sign up successful",
-            description: "Please check your email to confirm your account",
-          });
-          setIsSignUp(false);
-          reset();
+          return;
         }
-      } else {
-        const success = await login(data.email, data.password);
-        
-        if (success) {
-          toast({
-            title: "Login successful",
-            description: "Welcome to POS System",
+
+        // Create user profile
+        if (signUpData.user) {
+          await supabase.from('user_profiles').insert({
+            user_id: signUpData.user.id,
+            username: userInfo.username,
+            role: userInfo.role,
           });
-        } else {
-          toast({
-            title: "Login failed", 
-            description: "Invalid email or password",
-            variant: "destructive",
+        }
+      } else if (authData.user) {
+        // Check if profile exists, create if not
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('user_id', authData.user.id)
+          .single();
+
+        if (!profile) {
+          await supabase.from('user_profiles').insert({
+            user_id: authData.user.id,
+            username: userInfo.username,
+            role: userInfo.role,
           });
         }
       }
-    } catch (error) {
+
       toast({
-        title: isSignUp ? "Sign up failed" : "Login failed",
-        description: "An error occurred during authentication",
+        title: "Login Successful",
+        description: `Welcome back, ${userInfo.username}!`,
+      });
+
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login Failed",
+        description: "An error occurred during login",
         variant: "destructive",
       });
     } finally {
@@ -88,104 +118,61 @@ export function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
-            POS System {isSignUp ? 'Sign Up' : 'Login'}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground text-center">
-            {isSignUp ? 'Create a new account' : 'Enter your credentials to access the system'}
-          </p>
+          <CardTitle className="text-2xl text-center">POS System Login</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <div className="relative">
-                  <UserPlus className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="username"
-                    type="text"
-                    {...register('username')}
-                    className="pl-10"
-                    placeholder="Enter username"
-                  />
-                </div>
-                {errors.username && (
-                  <p className="text-sm text-destructive">{errors.username.message}</p>
-                )}
-              </div>
-            )}
-            
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  {...register('email')}
-                  className="pl-10"
-                  placeholder="Enter email"
-                />
-              </div>
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email.message}</p>
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                {...register('username', { required: 'Username is required' })}
+                placeholder="Enter username (admin or staff)"
+                disabled={isLoading}
+              />
+              {errors.username && (
+                <p className="text-sm text-destructive">{errors.username.message}</p>
               )}
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  {...register('password')}
-                  className="pl-10"
-                  placeholder="Enter password"
-                />
-              </div>
+              <Input
+                id="password"
+                type="password"
+                {...register('password', { required: 'Password is required' })}
+                placeholder="Enter password"
+                disabled={isLoading}
+              />
               {errors.password && (
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
             </div>
-            
+
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 
-                (isSignUp ? 'Creating Account...' : 'Logging in...') : 
-                (isSignUp ? 'Create Account' : 'Login')
-              }
+              {isLoading ? (
+                "Signing in..."
+              ) : (
+                <>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </>
+              )}
             </Button>
-          </form>
-          
-          <div className="mt-4 text-center">
-            <Button 
-              type="button" 
-              variant="link" 
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                reset();
-              }}
-              className="text-sm"
-            >
-              {isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign up"}
-            </Button>
-          </div>
-          
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <p className="text-sm font-medium mb-2">Database Status:</p>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <div>✅ Supabase Database: Connected</div>
-              <div>✅ Backend: Fully configured</div>
-              <div>✅ Data Storage: Cloud-based secure storage</div>
-              {isSignUp && <div>📧 Email confirmation required after signup</div>}
+
+            <div className="text-sm text-muted-foreground text-center space-y-1">
+              <div>Default Credentials:</div>
+              <div>Admin: admin / cisco@123</div>
+              <div>Staff: staff / staff123</div>
             </div>
-          </div>
+          </form>
         </CardContent>
       </Card>
     </div>
   );
-}
+};
+
+export default LoginForm;

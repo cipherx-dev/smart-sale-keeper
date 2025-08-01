@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { db, Product } from "@/lib/database";
+import ProductExcelManager from "@/components/ProductExcelManager";
 import {
   Package,
   Plus,
@@ -20,8 +22,6 @@ import {
   Search,
   AlertTriangle,
   Barcode,
-  Upload,
-  Download
 } from "lucide-react";
 
 const productSchema = z.object({
@@ -43,8 +43,9 @@ const ProductsModule = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
 
-  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<ProductForm>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: "",
@@ -55,6 +56,8 @@ const ProductsModule = () => {
       category: "",
     },
   });
+
+  const watchCategory = watch("category");
 
   useEffect(() => {
     loadProducts();
@@ -88,9 +91,17 @@ const ProductsModule = () => {
 
   const onSubmit = async (data: ProductForm) => {
     try {
+      let categoryToUse = data.category;
+      
+      // If "new" is selected and newCategory is provided, use the new category
+      if (data.category === "new" && newCategory.trim()) {
+        categoryToUse = newCategory.trim();
+      }
+
+      const productData = { ...data, category: categoryToUse };
+
       if (editingProduct) {
-        // Update existing product
-        const updated = await db.updateProduct(editingProduct.id, data);
+        const updated = await db.updateProduct(editingProduct.id, productData);
         if (updated) {
           toast({
             title: "Product Updated",
@@ -98,7 +109,6 @@ const ProductsModule = () => {
           });
         }
       } else {
-        // Check if barcode already exists
         const existingProduct = await db.findProductByBarcode(data.barcode);
         if (existingProduct) {
           toast({
@@ -109,8 +119,7 @@ const ProductsModule = () => {
           return;
         }
 
-        // Create new product
-        await db.saveProduct(data);
+        await db.saveProduct(productData);
         toast({
           title: "Product Added",
           description: "New product has been added successfully",
@@ -169,6 +178,7 @@ const ProductsModule = () => {
   const resetForm = () => {
     reset();
     setEditingProduct(null);
+    setNewCategory("");
     setIsDialogOpen(false);
   };
 
@@ -207,14 +217,7 @@ const ProductsModule = () => {
           <p className="text-muted-foreground">Manage your inventory and product catalog</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Upload className="mr-2 h-4 w-4" />
-            Import
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+          <ProductExcelManager products={products} onProductsUpdated={loadProducts} />
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => resetForm()}>
@@ -312,12 +315,25 @@ const ProductsModule = () => {
                           {category}
                         </SelectItem>
                       ))}
+                      <SelectItem value="new">+ Add New Category</SelectItem>
                     </SelectContent>
                   </Select>
                   {errors.category && (
                     <p className="text-sm text-destructive mt-1">{errors.category.message}</p>
                   )}
                 </div>
+
+                {watchCategory === "new" && (
+                  <div>
+                    <Label htmlFor="newCategory">New Category Name</Label>
+                    <Input
+                      id="newCategory"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      placeholder="Enter new category name"
+                    />
+                  </div>
+                )}
 
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" className="flex-1">
