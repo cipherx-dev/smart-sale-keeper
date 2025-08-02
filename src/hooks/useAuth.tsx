@@ -56,6 +56,7 @@ export function useAuthProvider() {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user ID:', userId);
       const { data: profile, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -64,6 +65,31 @@ export function useAuthProvider() {
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        // Try to find profile by matching with auth user email
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser?.email) {
+          const username = authUser.email === 'admin@pos.local' ? 'admin' : 'staff';
+          const { data: profileByUsername } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('username', username)
+            .single();
+          
+          if (profileByUsername) {
+            // Link this profile to the auth user
+            await supabase
+              .from('user_profiles')
+              .update({ user_id: userId })
+              .eq('username', username);
+            
+            setUser({
+              id: userId,
+              username: profileByUsername.username,
+              role: profileByUsername.role,
+              email: authUser.email,
+            });
+          }
+        }
         setLoading(false);
         return;
       }

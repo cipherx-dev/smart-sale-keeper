@@ -46,19 +46,20 @@ const LoginForm = () => {
         return;
       }
 
-      // Try to sign in with existing user
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Try to sign in with existing user first
+      let authResult = await supabase.auth.signInWithPassword({
         email: userInfo.email,
         password: data.password,
       });
 
-      if (authError) {
-        console.log('User does not exist in auth, creating new user...');
-        // Create the user account if it doesn't exist
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      // If sign in fails, create the user account
+      if (authResult.error) {
+        console.log('User does not exist, creating account...');
+        authResult = await supabase.auth.signUp({
           email: userInfo.email,
           password: data.password,
           options: {
+            emailRedirectTo: `${window.location.origin}/`,
             data: {
               username: userInfo.username,
               role: userInfo.role,
@@ -66,48 +67,32 @@ const LoginForm = () => {
           }
         });
 
-        if (signUpError) {
-          console.error('Sign up error:', signUpError);
+        if (authResult.error) {
+          console.error('Authentication error:', authResult.error);
           toast({
             title: "Authentication Error",
-            description: "Failed to create user account",
+            description: authResult.error.message,
             variant: "destructive",
           });
           return;
         }
-
-        console.log('User account created successfully');
       }
 
-      // Check if user profile exists and create/update if necessary
-      const { data: existingProfile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('username', userInfo.username)
-        .single();
-
-      if (!existingProfile && authData?.user) {
-        // Create profile for the user
-        const { error: profileError } = await supabase
+      // Handle profile linking
+      if (authResult.data.user) {
+        // Find the existing profile for this username
+        const { data: existingProfile, error: profileError } = await supabase
           .from('user_profiles')
-          .insert({
-            user_id: authData.user.id,
-            username: userInfo.username,
-            role: userInfo.role,
-          });
+          .select('*')
+          .eq('username', userInfo.username)
+          .single();
 
-        if (profileError) {
-          console.error('Profile creation error:', profileError);
-        }
-      } else if (existingProfile && authData?.user) {
-        // Update the user_id in the profile to link it to the auth user
-        const { error: updateError } = await supabase
-          .from('user_profiles')
-          .update({ user_id: authData.user.id })
-          .eq('username', userInfo.username);
-
-        if (updateError) {
-          console.error('Profile update error:', updateError);
+        if (!profileError && existingProfile) {
+          // Update the profile to link it with the auth user
+          await supabase
+            .from('user_profiles')
+            .update({ user_id: authResult.data.user.id })
+            .eq('username', userInfo.username);
         }
       }
 
