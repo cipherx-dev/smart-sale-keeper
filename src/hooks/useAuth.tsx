@@ -61,19 +61,19 @@ export function useAuthProvider() {
         .from('user_profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user profile:', error);
         // Try to find profile by matching with auth user email
         const { data: { user: authUser } } = await supabase.auth.getUser();
         if (authUser?.email) {
-          const username = authUser.email === 'admin@pos.local' ? 'admin' : 'staff';
+          const username = authUser.email === 'admin@smartpos.com' ? 'admin' : 'staff';
           const { data: profileByUsername } = await supabase
             .from('user_profiles')
             .select('*')
             .eq('username', username)
-            .single();
+            .maybeSingle();
           
           if (profileByUsername) {
             // Link this profile to the auth user

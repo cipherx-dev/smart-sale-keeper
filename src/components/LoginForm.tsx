@@ -19,10 +19,10 @@ const LoginForm = () => {
   const { toast } = useToast();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
 
-  // Hardcoded users mapping
+  // Hardcoded users mapping with valid email formats
   const defaultUsers = {
-    admin: { username: 'admin', password: 'cisco@123', role: 'admin' as const, email: 'admin@pos.local' },
-    staff: { username: 'staff', password: 'staff123', role: 'staff' as const, email: 'staff@pos.local' }
+    admin: { username: 'admin', password: 'cisco@123', role: 'admin' as const, email: 'admin@smartpos.com' },
+    staff: { username: 'staff', password: 'staff123', role: 'staff' as const, email: 'staff@smartpos.com' }
   };
 
   const onSubmit = async (data: LoginForm) => {
@@ -85,7 +85,7 @@ const LoginForm = () => {
           .from('user_profiles')
           .select('*')
           .eq('username', userInfo.username)
-          .single();
+          .maybeSingle();
 
         if (!profileError && existingProfile) {
           // Update the profile to link it with the auth user
