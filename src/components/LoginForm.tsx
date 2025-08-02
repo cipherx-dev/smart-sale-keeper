@@ -19,7 +19,7 @@ const LoginForm = () => {
   const { toast } = useToast();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginForm>();
 
-  // Hardcoded users
+  // Hardcoded users mapping
   const defaultUsers = {
     admin: { username: 'admin', password: 'cisco@123', role: 'admin' as const, email: 'admin@pos.local' },
     staff: { username: 'staff', password: 'staff123', role: 'staff' as const, email: 'staff@pos.local' }
@@ -29,7 +29,7 @@ const LoginForm = () => {
     setIsLoading(true);
     
     try {
-      // Check hardcoded credentials
+      // Check hardcoded credentials first
       let userInfo = null;
       if (data.username === 'admin' && data.password === 'cisco@123') {
         userInfo = defaultUsers.admin;
@@ -46,14 +46,15 @@ const LoginForm = () => {
         return;
       }
 
-      // Try to sign in with Supabase Auth using email
+      // Try to sign in with existing user
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: userInfo.email,
         password: data.password,
       });
 
       if (authError) {
-        // If user doesn't exist, create them
+        console.log('User does not exist in auth, creating new user...');
+        // Create the user account if it doesn't exist
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: userInfo.email,
           password: data.password,
@@ -75,28 +76,38 @@ const LoginForm = () => {
           return;
         }
 
-        // Create user profile
-        if (signUpData.user) {
-          await supabase.from('user_profiles').insert({
-            user_id: signUpData.user.id,
-            username: userInfo.username,
-            role: userInfo.role,
-          });
-        }
-      } else if (authData.user) {
-        // Check if profile exists, create if not
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', authData.user.id)
-          .single();
+        console.log('User account created successfully');
+      }
 
-        if (!profile) {
-          await supabase.from('user_profiles').insert({
+      // Check if user profile exists and create/update if necessary
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('username', userInfo.username)
+        .single();
+
+      if (!existingProfile && authData?.user) {
+        // Create profile for the user
+        const { error: profileError } = await supabase
+          .from('user_profiles')
+          .insert({
             user_id: authData.user.id,
             username: userInfo.username,
             role: userInfo.role,
           });
+
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+        }
+      } else if (existingProfile && authData?.user) {
+        // Update the user_id in the profile to link it to the auth user
+        const { error: updateError } = await supabase
+          .from('user_profiles')
+          .update({ user_id: authData.user.id })
+          .eq('username', userInfo.username);
+
+        if (updateError) {
+          console.error('Profile update error:', updateError);
         }
       }
 
