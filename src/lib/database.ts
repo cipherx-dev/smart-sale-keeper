@@ -80,9 +80,9 @@ class SupabaseDatabase {
         category: product.category || 'General',
       })
       .select()
-      .single();
+      .maybeSingle();
     
-    if (error) throw error;
+    if (error || !data) throw error || new Error('Failed to create product');
     
     return {
       id: data.id,
@@ -111,7 +111,7 @@ class SupabaseDatabase {
       .update(updateData)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
     
     if (error) return null;
     
@@ -142,7 +142,7 @@ class SupabaseDatabase {
       .from('products')
       .select('*')
       .eq('barcode', barcode)
-      .single();
+      .maybeSingle();
     
     if (error || !data) return null;
     
@@ -227,9 +227,9 @@ class SupabaseDatabase {
         created_by: user?.id || null,
       })
       .select()
-      .single();
+      .maybeSingle();
     
-    if (saleError) throw saleError;
+    if (saleError || !saleData) throw saleError || new Error('Failed to create sale');
     
     // Insert sale items
     const saleItemsData = sale.items.map(item => ({
@@ -256,7 +256,7 @@ class SupabaseDatabase {
         .from('products')
         .select('quantity')
         .eq('id', item.productId)
-        .single();
+        .maybeSingle();
       
       if (product) {
         await supabase
@@ -329,7 +329,7 @@ class SupabaseDatabase {
         .update(updateData)
         .eq('user_id', id)
         .select()
-        .single();
+        .maybeSingle();
       
       if (error) return null;
       
@@ -378,9 +378,9 @@ class SupabaseDatabase {
       .update(updateData)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
     
-    if (error) return null;
+    if (error || !data) return null;
     
     // Get sale items
     const { data: itemsData } = await supabase
@@ -427,7 +427,7 @@ class SupabaseDatabase {
           .from('products')
           .select('quantity')
           .eq('id', item.product_id)
-          .single();
+          .maybeSingle();
         
         if (product) {
           await supabase

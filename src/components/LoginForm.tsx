@@ -29,7 +29,7 @@ const LoginForm = () => {
     setIsLoading(true);
     
     try {
-      // Check hardcoded credentials first
+      // Check hardcoded credentials
       let userInfo = null;
       if (data.username === 'admin' && data.password === 'cisco@123') {
         userInfo = defaultUsers.admin;
@@ -46,60 +46,40 @@ const LoginForm = () => {
         return;
       }
 
-      // Try to sign in with existing user first
-      let authResult = await supabase.auth.signInWithPassword({
-        email: userInfo.email,
-        password: data.password,
-      });
+      // Check if profile exists in database
+      const { data: existingProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('username', userInfo.username)
+        .maybeSingle();
 
-      // If sign in fails, create the user account
-      if (authResult.error) {
-        console.log('User does not exist, creating account...');
-        authResult = await supabase.auth.signUp({
-          email: userInfo.email,
-          password: data.password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/`,
-            data: {
-              username: userInfo.username,
-              role: userInfo.role,
-            }
-          }
-        });
-
-        if (authResult.error) {
-          console.error('Authentication error:', authResult.error);
-          toast({
-            title: "Authentication Error",
-            description: authResult.error.message,
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      // Handle profile linking
-      if (authResult.data.user) {
-        // Find the existing profile for this username
-        const { data: existingProfile, error: profileError } = await supabase
+      if (!existingProfile) {
+        // Create profile if it doesn't exist
+        const { error: insertError } = await supabase
           .from('user_profiles')
-          .select('*')
-          .eq('username', userInfo.username)
-          .maybeSingle();
+          .insert({
+            username: userInfo.username,
+            role: userInfo.role,
+            user_id: null // Will link later when needed
+          });
 
-        if (!profileError && existingProfile) {
-          // Update the profile to link it with the auth user
-          await supabase
-            .from('user_profiles')
-            .update({ user_id: authResult.data.user.id })
-            .eq('username', userInfo.username);
+        if (insertError) {
+          console.error('Profile creation error:', insertError);
         }
       }
 
-      toast({
-        title: "Login Successful",
-        description: `Welcome back, ${userInfo.username}!`,
-      });
+      // For hardcoded users, we'll bypass Supabase auth and create a session manually
+      // This is a simplified approach for demo purposes
+      localStorage.setItem('pos_auth_user', JSON.stringify({
+        id: existingProfile?.id || 'demo-' + userInfo.username,
+        username: userInfo.username,
+        role: userInfo.role,
+        email: userInfo.email,
+        isAuthenticated: true
+      }));
+
+      // Trigger a page reload to update the auth state
+      window.location.reload();
 
     } catch (error) {
       console.error('Login error:', error);
