@@ -22,14 +22,20 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppContent() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
   
   // Initialize database when app starts
   React.useEffect(() => {
     db.initializeDatabase();
   }, []);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('App: Auth state changed:', { isAuthenticated, loading, user });
+  }, [isAuthenticated, loading, user]);
   
   if (loading) {
+    console.log('App: Still loading...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -41,8 +47,11 @@ function AppContent() {
   }
   
   if (!isAuthenticated) {
+    console.log('App: Not authenticated, showing login form');
     return <LoginForm />;
   }
+  
+  console.log('App: Authenticated, showing POS layout');
   
   return (
     <PosLayout>

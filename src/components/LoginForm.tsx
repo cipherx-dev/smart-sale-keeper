@@ -89,6 +89,7 @@ const LoginForm = () => {
         loginTime: Date.now()
       };
 
+      console.log('LoginForm: Storing auth data:', authData);
       localStorage.setItem('pos_auth_user', JSON.stringify(authData));
 
       toast({
@@ -96,10 +97,11 @@ const LoginForm = () => {
         description: `Welcome back, ${userInfo.username}!`,
       });
 
-      // Force a page reload to update auth state
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
+      // Navigate to dashboard instead of reloading
+      console.log('LoginForm: Login successful, should redirect now');
+      
+      // Force a hard reload to ensure clean state
+      window.location.href = window.location.origin;
 
     } catch (error) {
       console.error('Login error:', error);

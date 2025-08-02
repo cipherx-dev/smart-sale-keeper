@@ -32,41 +32,48 @@ export function useAuthProvider() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('useAuth: Initializing auth check...');
+    
     // Check localStorage for stored auth
     const checkStoredAuth = () => {
       try {
         const storedUser = localStorage.getItem('pos_auth_user');
-        console.log('Checking stored auth:', storedUser);
+        console.log('useAuth: Stored user data:', storedUser);
         
         if (storedUser) {
           const userData = JSON.parse(storedUser);
-          console.log('Parsed user data:', userData);
+          console.log('useAuth: Parsed user data:', userData);
           
-          // Check if session is still valid (not expired)
+          // Check if session is still valid
           if (userData.isAuthenticated && userData.username) {
+            console.log('useAuth: Setting authenticated user:', userData.username);
             setUser({
               id: userData.id,
               username: userData.username,
               role: userData.role,
               email: userData.email,
             });
-            console.log('User authenticated:', userData.username);
           } else {
-            console.log('Session invalid, clearing storage');
+            console.log('useAuth: Session invalid, clearing storage');
             localStorage.removeItem('pos_auth_user');
+            setUser(null);
           }
         } else {
-          console.log('No stored auth found');
+          console.log('useAuth: No stored auth found');
+          setUser(null);
         }
       } catch (error) {
-        console.error('Error checking stored auth:', error);
+        console.error('useAuth: Error checking stored auth:', error);
         localStorage.removeItem('pos_auth_user');
+        setUser(null);
       } finally {
+        console.log('useAuth: Setting loading to false');
         setLoading(false);
       }
     };
 
-    checkStoredAuth();
+    // Small delay to ensure DOM is ready
+    setTimeout(checkStoredAuth, 100);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
