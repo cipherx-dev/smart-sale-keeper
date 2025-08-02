@@ -46,40 +46,60 @@ const LoginForm = () => {
         return;
       }
 
-      // Check if profile exists in database
+      // Check if profile exists in database, create if not
       const { data: existingProfile } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('username', userInfo.username)
         .maybeSingle();
 
-      if (!existingProfile) {
-        // Create profile if it doesn't exist
-        const { error: insertError } = await supabase
-          .from('user_profiles')
-          .insert({
-            username: userInfo.username,
-            role: userInfo.role,
-            user_id: null // Will link later when needed
-          });
+      let profileId = existingProfile?.id;
 
-        if (insertError) {
-          console.error('Profile creation error:', insertError);
+      if (!existingProfile) {
+        try {
+          // Create profile if it doesn't exist
+          const { data: newProfile, error: insertError } = await supabase
+            .from('user_profiles')
+            .insert({
+              username: userInfo.username,
+              role: userInfo.role,
+              user_id: null // Will link later when needed
+            })
+            .select()
+            .maybeSingle();
+
+          if (insertError) {
+            console.error('Profile creation error:', insertError);
+          } else if (newProfile) {
+            profileId = newProfile.id;
+          }
+        } catch (error) {
+          console.error('Error creating profile:', error);
+          // Continue anyway - we can still login without database profile
         }
       }
 
-      // For hardcoded users, we'll bypass Supabase auth and create a session manually
-      // This is a simplified approach for demo purposes
-      localStorage.setItem('pos_auth_user', JSON.stringify({
-        id: existingProfile?.id || 'demo-' + userInfo.username,
+      // Store authentication data in localStorage
+      const authData = {
+        id: profileId || 'demo-' + userInfo.username,
         username: userInfo.username,
         role: userInfo.role,
         email: userInfo.email,
-        isAuthenticated: true
-      }));
+        isAuthenticated: true,
+        loginTime: Date.now()
+      };
 
-      // Trigger a page reload to update the auth state
-      window.location.reload();
+      localStorage.setItem('pos_auth_user', JSON.stringify(authData));
+
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${userInfo.username}!`,
+      });
+
+      // Force a page reload to update auth state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
 
     } catch (error) {
       console.error('Login error:', error);

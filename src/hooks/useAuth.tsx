@@ -36,16 +36,27 @@ export function useAuthProvider() {
     const checkStoredAuth = () => {
       try {
         const storedUser = localStorage.getItem('pos_auth_user');
+        console.log('Checking stored auth:', storedUser);
+        
         if (storedUser) {
           const userData = JSON.parse(storedUser);
-          if (userData.isAuthenticated) {
+          console.log('Parsed user data:', userData);
+          
+          // Check if session is still valid (not expired)
+          if (userData.isAuthenticated && userData.username) {
             setUser({
               id: userData.id,
               username: userData.username,
               role: userData.role,
               email: userData.email,
             });
+            console.log('User authenticated:', userData.username);
+          } else {
+            console.log('Session invalid, clearing storage');
+            localStorage.removeItem('pos_auth_user');
           }
+        } else {
+          console.log('No stored auth found');
         }
       } catch (error) {
         console.error('Error checking stored auth:', error);
