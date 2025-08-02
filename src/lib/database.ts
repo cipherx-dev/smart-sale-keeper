@@ -1,6 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import { handleSupabaseError, getCurrentUser } from './supabase-utils';
+import { toast } from '@/hooks/use-toast';
 
-// Data types
+// Data types with improved interfaces
 export interface Product {
   id: string;
   name: string;
