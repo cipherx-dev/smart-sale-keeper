@@ -23,22 +23,21 @@ export const handleSupabaseError = (error: any, operation: string) => {
   return message;
 };
 
-export const getCurrentUser = () => {
-  // First check localStorage for demo user
+export const getCurrentUser = async () => {
   try {
-    const storedUser = localStorage.getItem('pos_auth_user');
-    if (storedUser) {
-      const userData = JSON.parse(storedUser);
-      if (userData.isAuthenticated) {
-        return userData;
-      }
+    // Only check Supabase auth - no demo users for security
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('Error getting current user:', error);
+      return null;
     }
+    
+    return user;
   } catch (error) {
-    console.error('Error getting stored user:', error);
+    console.error('Error getting current user:', error);
+    return null;
   }
-  
-  // Then check Supabase auth
-  return supabase.auth.getUser();
 };
 
 export const withErrorHandling = async <T>(
@@ -83,12 +82,48 @@ export const unsubscribeFromTable = (subscription: any) => {
   }
 };
 
-// Generic database operations with error handling
+// Input sanitization helper
+export const sanitizeInput = (input: string): string => {
+  if (typeof input !== 'string') return '';
+  
+  return input
+    .trim()
+    .replace(/[<>]/g, '') // Remove potential XSS characters
+    .slice(0, 1000); // Limit length to prevent DoS
+};
+
+export const validateNumericInput = (value: any, fieldName: string): { valid: boolean; error?: string; value?: number } => {
+  const num = parseFloat(value);
+  
+  if (isNaN(num)) {
+    return { valid: false, error: `${fieldName} must be a valid number` };
+  }
+  
+  if (num < 0) {
+    return { valid: false, error: `${fieldName} cannot be negative` };
+  }
+  
+  if (num > 999999.99) {
+    return { valid: false, error: `${fieldName} is too large` };
+  }
+  
+  return { valid: true, value: num };
+};
+
+// Generic database operations with error handling and validation
 export const insertRecord = async (table: string, data: any) => {
   try {
+    // Sanitize string inputs
+    const sanitizedData = { ...data };
+    Object.keys(sanitizedData).forEach(key => {
+      if (typeof sanitizedData[key] === 'string') {
+        sanitizedData[key] = sanitizeInput(sanitizedData[key]);
+      }
+    });
+    
     const { data: result, error } = await (supabase as any)
       .from(table)
-      .insert(data)
+      .insert(sanitizedData)
       .select()
       .maybeSingle();
       
@@ -105,9 +140,22 @@ export const insertRecord = async (table: string, data: any) => {
 
 export const updateRecord = async (table: string, id: string, data: any) => {
   try {
+    // Validate ID
+    if (!id || typeof id !== 'string') {
+      throw new Error('Invalid ID provided');
+    }
+    
+    // Sanitize string inputs
+    const sanitizedData = { ...data };
+    Object.keys(sanitizedData).forEach(key => {
+      if (typeof sanitizedData[key] === 'string') {
+        sanitizedData[key] = sanitizeInput(sanitizedData[key]);
+      }
+    });
+    
     const { data: result, error } = await (supabase as any)
       .from(table)
-      .update(data)
+      .update(sanitizedData)
       .eq('id', id)
       .select()
       .maybeSingle();
@@ -125,6 +173,11 @@ export const updateRecord = async (table: string, id: string, data: any) => {
 
 export const deleteRecord = async (table: string, id: string) => {
   try {
+    // Validate ID
+    if (!id || typeof id !== 'string') {
+      throw new Error('Invalid ID provided');
+    }
+    
     const { error } = await (supabase as any)
       .from(table)
       .delete()

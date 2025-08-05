@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/components/AuthProvider";
-import LoginForm from "@/components/LoginForm";
+import AuthPage from "@/components/AuthPage";
 import { useAuth } from "@/hooks/useAuth";
 import { PosLayout } from "@/components/PosLayout";
 import { Dashboard } from "@/components/Dashboard";
@@ -47,8 +47,8 @@ function AppContent() {
   }
   
   if (!isAuthenticated) {
-    console.log('App: Not authenticated, showing login form');
-    return <LoginForm />;
+    console.log('App: Not authenticated, showing auth page');
+    return <AuthPage />;
   }
   
   console.log('App: Authenticated, showing POS layout');

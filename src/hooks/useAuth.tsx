@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -14,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
+  signup: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>;
   isAuthenticated: boolean;
   loading: boolean;
 }
@@ -50,12 +50,11 @@ export function useAuthProvider() {
         if (session?.user) {
           await fetchUserProfile(session.user);
         } else {
-          // Check for demo authentication in localStorage
-          checkDemoAuth();
+          setLoading(false);
         }
       } catch (error) {
         console.error('useAuth: Error getting session:', error);
-        checkDemoAuth();
+        setLoading(false);
       }
     };
 
@@ -66,8 +65,8 @@ export function useAuthProvider() {
       if (session?.user) {
         await fetchUserProfile(session.user);
       } else {
-        // Check demo auth when no session
-        checkDemoAuth();
+        setUser(null);
+        setLoading(false);
       }
     });
 
@@ -77,35 +76,6 @@ export function useAuthProvider() {
       subscription.unsubscribe();
     };
   }, []);
-
-  const checkDemoAuth = () => {
-    try {
-      const storedUser = localStorage.getItem('pos_auth_user');
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        if (userData.isAuthenticated && userData.username) {
-          console.log('useAuth: Found demo auth:', userData.username);
-          setUser({
-            id: userData.id,
-            username: userData.username,
-            role: userData.role,
-            email: userData.email,
-          });
-        } else {
-          localStorage.removeItem('pos_auth_user');
-          setUser(null);
-        }
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('useAuth: Demo auth error:', error);
-      localStorage.removeItem('pos_auth_user');
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchUserProfile = async (authUser: SupabaseUser) => {
     try {
@@ -132,7 +102,7 @@ export function useAuthProvider() {
           email: authUser.email || '',
         });
       } else {
-        console.log('useAuth: No profile found, using auth user data');
+        console.log('useAuth: No profile found, creating new profile');
         // Create profile if it doesn't exist
         const username = authUser.email?.split('@')[0] || 'user';
         const { data: newProfile, error: createError } = await supabase
@@ -163,51 +133,157 @@ export function useAuthProvider() {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('useAuth: Attempting login for:', email);
+      setLoading(true);
       
+      // Input validation
+      if (!email?.trim() || !password?.trim()) {
+        return { 
+          success: false, 
+          error: 'Email and password are required.' 
+        };
+      }
+      
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return { 
+          success: false, 
+          error: 'Please enter a valid email address.' 
+        };
+      }
+      
+      // Password strength validation
+      if (password.length < 6) {
+        return { 
+          success: false, 
+          error: 'Password must be at least 6 characters long.' 
+        };
+      }
+      
+      // Handle real Supabase authentication only
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) {
-        console.error('useAuth: Login error:', error);
-        return { success: false, error: error.message };
+        // Provide user-friendly error messages
+        if (error.message.includes('Invalid login credentials')) {
+          return { 
+            success: false, 
+            error: 'Invalid email or password. Please try again.' 
+          };
+        }
+        if (error.message.includes('Email not confirmed')) {
+          return { 
+            success: false, 
+            error: 'Please confirm your email address before logging in.' 
+          };
+        }
+        throw error;
       }
 
-      if (data.user) {
-        console.log('useAuth: Login successful');
-        return { success: true };
-      }
-
-      return { success: false, error: 'Login failed' };
-    } catch (error) {
-      console.error('useAuth: Login exception:', error);
-      return { success: false, error: 'Login failed' };
+      return { success: !!data.user };
+    } catch (error: any) {
+      console.error('Login error:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Login failed. Please try again later.' 
+      };
+    } finally {
+      setLoading(false);
     }
   };
 
   const logout = async () => {
     try {
-      console.log('useAuth: Logging out...');
+      // Clear localStorage first
+      localStorage.removeItem('pos_auth_user');
       
-      // Clear Supabase session
+      // Then sign out from Supabase
       await supabase.auth.signOut();
       
-      // Clear localStorage
-      localStorage.removeItem('pos_auth_user');
-      
-      // Clear user state
       setUser(null);
-      
-      // Redirect to login
-      window.location.href = '/';
     } catch (error) {
-      console.error('useAuth: Logout error:', error);
-      // Force logout even if Supabase fails
-      localStorage.removeItem('pos_auth_user');
+      console.error('Logout error:', error);
+      // Even if Supabase logout fails, clear local state
       setUser(null);
-      window.location.href = '/';
+    }
+  };
+
+  // Add signup function for complete authentication
+  const signup = async (email: string, password: string, username: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      setLoading(true);
+      
+      // Input validation
+      if (!email?.trim() || !password?.trim() || !username?.trim()) {
+        return { 
+          success: false, 
+          error: 'All fields are required.' 
+        };
+      }
+      
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        return { 
+          success: false, 
+          error: 'Please enter a valid email address.' 
+        };
+      }
+      
+      // Password strength validation
+      if (password.length < 6) {
+        return { 
+          success: false, 
+          error: 'Password must be at least 6 characters long.' 
+        };
+      }
+      
+      // Username validation
+      if (username.trim().length < 3) {
+        return { 
+          success: false, 
+          error: 'Username must be at least 3 characters long.' 
+        };
+      }
+      
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          data: {
+            username: username.trim()
+          }
+        }
+      });
+
+      if (error) {
+        if (error.message.includes('already registered')) {
+          return { 
+            success: false, 
+            error: 'An account with this email already exists.' 
+          };
+        }
+        throw error;
+      }
+
+      return { 
+        success: true,
+        error: data.user?.email_confirmed_at 
+          ? undefined 
+          : 'Please check your email and click the confirmation link to complete registration.'
+      };
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      return { 
+        success: false, 
+        error: error.message || 'Registration failed. Please try again later.' 
+      };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -215,6 +291,7 @@ export function useAuthProvider() {
     user,
     login,
     logout,
+    signup,
     isAuthenticated: !!user,
     loading,
   };
