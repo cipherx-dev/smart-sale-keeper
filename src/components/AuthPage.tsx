@@ -34,7 +34,7 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login, signup } = useAuth();
+  const auth = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -59,7 +59,7 @@ export default function AuthPage() {
   const onLogin = async (data: LoginForm) => {
     setLoading(true);
     try {
-      const result = await login(data.email, data.password);
+      const result = await auth.login(data.email, data.password);
       
       if (result.success) {
         toast({
@@ -88,7 +88,7 @@ export default function AuthPage() {
   const onSignup = async (data: SignupForm) => {
     setLoading(true);
     try {
-      const result = await signup(data.email, data.password, data.username);
+      const result = await auth.signup(data.email, data.password, data.username);
       
       if (result.success) {
         toast({
