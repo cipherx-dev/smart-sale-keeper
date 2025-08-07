@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { db, User } from "@/lib/database";
-import { useAuth } from "@/hooks/useAuth";
+
 import {
   Users as UsersIcon,
   Plus,
@@ -34,7 +34,7 @@ type UserForm = z.infer<typeof userSchema>;
 
 export default function Users() {
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
+  
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -125,15 +125,6 @@ export default function Users() {
   };
 
   const handleDelete = async (user: User) => {
-    if (user.id === currentUser?.id) {
-      toast({
-        title: "Cannot Delete",
-        description: "You cannot delete your own account",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (window.confirm(`Are you sure you want to delete user "${user.username}"?`)) {
       const success = await db.deleteUser(user.id);
       if (success) {
@@ -168,27 +159,6 @@ export default function Users() {
     staff: users.filter(u => u.role === 'staff').length,
   };
 
-  if (currentUser?.role !== 'admin') {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">Manage user accounts and permissions</p>
-        </div>
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <Shield className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">Access Denied</h3>
-              <p className="text-muted-foreground">
-                Only admin users can access the User Management module.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -342,9 +312,6 @@ export default function Users() {
                       </div>
                       <div>
                         <p className="font-medium">{user.username}</p>
-                        {user.id === currentUser?.id && (
-                          <p className="text-sm text-muted-foreground">(You)</p>
-                        )}
                       </div>
                     </div>
                   </TableCell>
@@ -382,7 +349,7 @@ export default function Users() {
                         size="sm"
                         variant="destructive"
                         onClick={() => handleDelete(user)}
-                        disabled={user.id === currentUser?.id}
+                        
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>

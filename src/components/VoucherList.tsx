@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { db, Sale } from "@/lib/database";
 import VoucherEditor from "./VoucherEditor";
-import { useAuth } from "@/hooks/useAuth";
+
 import {
   Search,
   Calendar,
@@ -25,7 +25,7 @@ interface VoucherListProps {
 
 export default function VoucherList({ onPrintVoucher }: VoucherListProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
+  
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -180,7 +180,7 @@ export default function VoucherList({ onPrintVoucher }: VoucherListProps) {
                       <Printer className="h-4 w-4 mr-1" />
                       Print
                     </Button>
-                    {user?.role === 'admin' && (
+                    {(
                       <>
                         <Button
                           size="sm"

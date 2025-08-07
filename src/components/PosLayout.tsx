@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const adminNavigation = [
@@ -39,9 +39,7 @@ interface PosLayoutProps {
 export function PosLayout({ children }: PosLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
-  const { logout, user } = useAuth();
-  
-  const navigation = user?.role === 'admin' ? adminNavigation : staffNavigation;
+  const navigation = adminNavigation;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/10 flex">
@@ -92,20 +90,11 @@ export function PosLayout({ children }: PosLayoutProps) {
         <div className="px-4 py-3 border-b bg-muted/20">
           <div className="flex items-center space-x-3">
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground">
-              <span className="text-sm font-semibold">
-                {user?.username?.charAt(0).toUpperCase()}
-              </span>
+              <span className="text-sm font-semibold">P</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {user?.username}
-              </p>
-              <Badge 
-                variant={user?.role === 'admin' ? 'default' : 'secondary'} 
-                className="text-xs"
-              >
-                {user?.role}
-              </Badge>
+              <p className="text-sm font-medium truncate">POS User</p>
+              <Badge variant="default" className="text-xs">Admin</Badge>
             </div>
           </div>
         </div>
@@ -139,15 +128,6 @@ export function PosLayout({ children }: PosLayoutProps) {
         <div className="p-4 border-t">
           <div className="flex items-center justify-between">
             <ThemeToggle />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={logout}
-              className="hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
           </div>
         </div>
       </div>

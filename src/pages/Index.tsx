@@ -3,12 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PlusCircle, Package, TrendingUp, AlertTriangle, ShoppingCart, FileText, Calendar } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+
 import { useDashboardStats } from "@/hooks/useDashboardStats";
 import { useNavigate } from "react-router-dom";
 
 const Index = () => {
-  const { user } = useAuth();
+  
   const { stats, loading } = useDashboardStats();
   const navigate = useNavigate();
 
@@ -37,7 +37,7 @@ const Index = () => {
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back, {user?.username}! Here's your business overview
+          Welcome! Here's your business overview
         </p>
       </div>
 

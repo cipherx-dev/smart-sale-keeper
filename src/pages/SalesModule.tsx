@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+
 import { db, Product, Sale, SaleItem } from "@/lib/database";
 import VoucherList from "@/components/VoucherList";
 import CategoryManager from "@/components/CategoryManager";
@@ -44,7 +44,7 @@ interface CartItem extends SaleItem {
 export default function SalesModule() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
@@ -230,7 +230,7 @@ export default function SalesModule() {
         totalProfit: totals.totalProfit,
         receivedAmount,
         changeAmount,
-        createdBy: user?.id || "unknown",
+        createdBy: "pos-user",
       };
 
       const savedSale = await db.saveSale(sale);
@@ -272,247 +272,6 @@ export default function SalesModule() {
     printReceiptDialog(sale);
   };
 
-  // Check if user is staff and restrict access
-  if (user?.role === 'staff') {
-    return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Sales Terminal</h1>
-            <p className="text-muted-foreground">Create new sales transactions</p>
-          </div>
-        </div>
-
-        <Tabs defaultValue="sales" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="sales">Sales Terminal</TabsTrigger>
-            <TabsTrigger value="vouchers">Voucher List</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="sales" className="space-y-4">
-
-        {/* Sales Terminal Content */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {/* Left: Product Search & Cart */}
-          <div className="space-y-4">
-            {/* Barcode Scanner */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Scan className="mr-2 h-5 w-5" />
-                  Barcode Scanner
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit(handleBarcodeSearch)} className="flex gap-2">
-                  <Input
-                    {...register("barcode")}
-                    placeholder="Scan or enter barcode"
-                    className="flex-1"
-                  />
-                  <Button type="submit">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-
-            {/* Product Search */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Search className="mr-2 h-5 w-5" />
-                  Search Products
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by name or barcode"
-                />
-                
-                {showProductList && filteredProducts.length > 0 && (
-                  <div className="mt-2 max-h-40 overflow-y-auto border rounded-lg">
-                    {filteredProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        className="p-2 hover:bg-secondary cursor-pointer border-b last:border-b-0"
-                        onClick={() => addToCart(product)}
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {formatCurrency(product.salePrice)} • Stock: {product.quantity}
-                            </p>
-                          </div>
-                          <Badge variant={product.quantity > 0 ? "secondary" : "destructive"}>
-                            {product.quantity > 0 ? "In Stock" : "Out"}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Shopping Cart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <ShoppingCart className="mr-2 h-5 w-5" />
-                  Shopping Cart ({cart.length} items)
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {cart.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    Cart is empty. Add products to start a sale.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {cart.map((item) => (
-                      <div key={item.productId} className="flex items-center justify-between p-2 border rounded">
-                        <div className="flex-1">
-                          <p className="font-medium">{item.productName}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatCurrency(item.salePrice)} each
-                          </p>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          
-                          <span className="w-8 text-center">{item.quantity}</span>
-                          
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                          
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => removeFromCart(item.productId)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        
-                        <div className="text-right ml-4">
-                          <p className="font-medium">{formatCurrency(item.totalSale)}</p>
-                          <p className="text-xs text-success">+{formatCurrency(item.profit)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right: Order Summary & Payment */}
-          <div className="space-y-4">
-            {/* Order Summary */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calculator className="mr-2 h-5 w-5" />
-                  Order Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span>Total Cost:</span>
-                  <span>{formatCurrency(totals.totalCost)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Total Sale:</span>
-                  <span className="font-medium">{formatCurrency(totals.totalSale)}</span>
-                </div>
-                <div className="flex justify-between text-success">
-                  <span>Total Profit:</span>
-                  <span className="font-medium">+{formatCurrency(totals.totalProfit)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Grand Total:</span>
-                  <span className="text-primary">{formatCurrency(totals.totalSale)}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Payment */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <DollarSign className="mr-2 h-5 w-5" />
-                  Payment
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="receivedAmount">Received Amount</Label>
-                  <Input
-                    id="receivedAmount"
-                    type="number"
-                    {...register("receivedAmount", { valueAsNumber: true })}
-                    placeholder="Enter received amount"
-                  />
-                  {errors.receivedAmount && (
-                    <p className="text-sm text-destructive mt-1">
-                      {errors.receivedAmount.message}
-                    </p>
-                  )}
-                </div>
-
-                {receivedAmount > 0 && (
-                  <div className="p-3 bg-muted rounded-lg">
-                    <div className="flex justify-between">
-                      <span>Change Amount:</span>
-                      <span className={`font-medium ${changeAmount >= 0 ? 'text-success' : 'text-destructive'}`}>
-                        {formatCurrency(Math.abs(changeAmount))}
-                        {changeAmount < 0 && " (Insufficient)"}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                <Button
-                  className="w-full"
-                  size="lg"
-                  onClick={completeSale}
-                  disabled={cart.length === 0 || receivedAmount < totals.totalSale}
-                >
-                  <Receipt className="mr-2 h-4 w-4" />
-                  Complete Sale
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-          </TabsContent>
-
-          <TabsContent value="vouchers" className="space-y-4">
-            <VoucherList onPrintVoucher={handlePrintVoucher} />
-          </TabsContent>
-        </Tabs>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -531,215 +290,214 @@ export default function SalesModule() {
         </TabsList>
 
         <TabsContent value="sales" className="space-y-4">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Left: Product Search & Cart */}
+            <div className="space-y-4">
+              {/* Barcode Scanner */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Scan className="mr-2 h-5 w-5" />
+                    Barcode Scanner
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit(handleBarcodeSearch)} className="flex gap-2">
+                    <Input
+                      {...register("barcode")}
+                      placeholder="Scan or enter barcode"
+                      className="flex-1"
+                    />
+                    <Button type="submit">
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Left: Product Search & Cart */}
-        <div className="space-y-4">
-          {/* Barcode Scanner */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Scan className="mr-2 h-5 w-5" />
-                Barcode Scanner
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit(handleBarcodeSearch)} className="flex gap-2">
-                <Input
-                  {...register("barcode")}
-                  placeholder="Scan or enter barcode"
-                  className="flex-1"
-                />
-                <Button type="submit">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Product Search */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Search className="mr-2 h-5 w-5" />
-                Search Products
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by name or barcode"
-              />
-              
-              {showProductList && filteredProducts.length > 0 && (
-                <div className="mt-2 max-h-40 overflow-y-auto border rounded-lg">
-                  {filteredProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="p-2 hover:bg-secondary cursor-pointer border-b last:border-b-0"
-                      onClick={() => addToCart(product)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatCurrency(product.salePrice)} • Stock: {product.quantity}
-                          </p>
+              {/* Product Search */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Search className="mr-2 h-5 w-5" />
+                    Search Products
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Input
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search by name or barcode"
+                  />
+                  
+                  {showProductList && filteredProducts.length > 0 && (
+                    <div className="mt-2 max-h-40 overflow-y-auto border rounded-lg">
+                      {filteredProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className="p-2 hover:bg-secondary cursor-pointer border-b last:border-b-0"
+                          onClick={() => addToCart(product)}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-medium">{product.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatCurrency(product.salePrice)} • Stock: {product.quantity}
+                              </p>
+                            </div>
+                            <Badge variant={product.quantity > 0 ? "secondary" : "destructive"}>
+                              {product.quantity > 0 ? "In Stock" : "Out"}
+                            </Badge>
+                          </div>
                         </div>
-                        <Badge variant={product.quantity > 0 ? "secondary" : "destructive"}>
-                          {product.quantity > 0 ? "In Stock" : "Out"}
-                        </Badge>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  )}
+                </CardContent>
+              </Card>
 
-          {/* Shopping Cart */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Shopping Cart ({cart.length} items)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {cart.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  Cart is empty. Add products to start a sale.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {cart.map((item) => (
-                    <div key={item.productId} className="flex items-center justify-between p-2 border rounded">
-                      <div className="flex-1">
-                        <p className="font-medium">{item.productName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatCurrency(item.salePrice)} each
-                        </p>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        
-                        <span className="w-8 text-center">{item.quantity}</span>
-                        
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => removeFromCart(item.productId)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      
-                      <div className="text-right ml-4">
-                        <p className="font-medium">{formatCurrency(item.totalSale)}</p>
-                        <p className="text-xs text-success">+{formatCurrency(item.profit)}</p>
-                      </div>
+              {/* Shopping Cart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    Shopping Cart ({cart.length} items)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {cart.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-4">
+                      Cart is empty. Add products to start a sale.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {cart.map((item) => (
+                        <div key={item.productId} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex-1">
+                            <p className="font-medium">{item.productName}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatCurrency(item.salePrice)} each
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            
+                            <span className="w-8 text-center">{item.quantity}</span>
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                            
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => removeFromCart(item.productId)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          
+                          <div className="text-right ml-4">
+                            <p className="font-medium">{formatCurrency(item.totalSale)}</p>
+                            <p className="text-xs text-success">+{formatCurrency(item.profit)}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
-        {/* Right: Order Summary & Payment */}
-        <div className="space-y-4">
-          {/* Order Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Calculator className="mr-2 h-5 w-5" />
-                Order Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between">
-                <span>Total Cost:</span>
-                <span>{formatCurrency(totals.totalCost)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Total Sale:</span>
-                <span className="font-medium">{formatCurrency(totals.totalSale)}</span>
-              </div>
-              <div className="flex justify-between text-success">
-                <span>Total Profit:</span>
-                <span className="font-medium">+{formatCurrency(totals.totalProfit)}</span>
-              </div>
-              <Separator />
-              <div className="flex justify-between text-lg font-bold">
-                <span>Grand Total:</span>
-                <span className="text-primary">{formatCurrency(totals.totalSale)}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Payment */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <DollarSign className="mr-2 h-5 w-5" />
-                Payment
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="receivedAmount">Received Amount</Label>
-                <Input
-                  id="receivedAmount"
-                  type="number"
-                  {...register("receivedAmount", { valueAsNumber: true })}
-                  placeholder="Enter received amount"
-                />
-                {errors.receivedAmount && (
-                  <p className="text-sm text-destructive mt-1">
-                    {errors.receivedAmount.message}
-                  </p>
-                )}
-              </div>
-
-              {receivedAmount > 0 && (
-                <div className="p-3 bg-muted rounded-lg">
+            {/* Right: Order Summary & Payment */}
+            <div className="space-y-4">
+              {/* Order Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Calculator className="mr-2 h-5 w-5" />
+                    Order Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
                   <div className="flex justify-between">
-                    <span>Change Amount:</span>
-                    <span className={`font-medium ${changeAmount >= 0 ? 'text-success' : 'text-destructive'}`}>
-                      {formatCurrency(Math.abs(changeAmount))}
-                      {changeAmount < 0 && " (Insufficient)"}
-                    </span>
+                    <span>Total Cost:</span>
+                    <span>{formatCurrency(totals.totalCost)}</span>
                   </div>
-                </div>
-              )}
+                  <div className="flex justify-between">
+                    <span>Total Sale:</span>
+                    <span className="font-medium">{formatCurrency(totals.totalSale)}</span>
+                  </div>
+                  <div className="flex justify-between text-success">
+                    <span>Total Profit:</span>
+                    <span className="font-medium">+{formatCurrency(totals.totalProfit)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Grand Total:</span>
+                    <span className="text-primary">{formatCurrency(totals.totalSale)}</span>
+                  </div>
+                </CardContent>
+              </Card>
 
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={completeSale}
-                disabled={cart.length === 0 || receivedAmount < totals.totalSale}
-              >
-                <Receipt className="mr-2 h-4 w-4" />
-                Complete Sale
-              </Button>
-            </CardContent>
-          </Card>
+              {/* Payment */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <DollarSign className="mr-2 h-5 w-5" />
+                    Payment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="receivedAmount">Received Amount</Label>
+                    <Input
+                      id="receivedAmount"
+                      type="number"
+                      {...register("receivedAmount", { valueAsNumber: true })}
+                      placeholder="Enter received amount"
+                    />
+                    {errors.receivedAmount && (
+                      <p className="text-sm text-destructive mt-1">
+                        {errors.receivedAmount.message}
+                      </p>
+                    )}
+                  </div>
+
+                  {receivedAmount > 0 && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="flex justify-between">
+                        <span>Change Amount:</span>
+                        <span className={`font-medium ${changeAmount >= 0 ? 'text-success' : 'text-destructive'}`}>
+                          {formatCurrency(Math.abs(changeAmount))}
+                          {changeAmount < 0 && " (Insufficient)"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    className="w-full"
+                    size="lg"
+                    onClick={completeSale}
+                    disabled={cart.length === 0 || receivedAmount < totals.totalSale}
+                  >
+                    <Receipt className="mr-2 h-4 w-4" />
+                    Complete Sale
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </TabsContent>
